@@ -24,4 +24,5 @@ module.exports = {
   },
   moduleFileExtensions: ['ts', 'js', 'json'],
   verbose: true,
+  setupFiles: ['<rootDir>/tests/setup.ts'],
 };
