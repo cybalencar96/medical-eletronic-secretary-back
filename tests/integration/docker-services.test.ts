@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { Client } from 'pg';
 import Redis from 'ioredis';
-import app from '../../src/index';
+import { app } from '../../src/app';
 
 // Helper to check if Docker services are available
 async function areDockerServicesAvailable(): Promise<boolean> {
