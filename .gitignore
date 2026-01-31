@@ -5,4 +5,5 @@ node_modules/
 dist/
 build/
 coverage/
-.DS_Storecoverage-queue/
+.DS_Store
+coverage-queue/
