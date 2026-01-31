@@ -31,9 +31,9 @@ describe('errorHandler middleware', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: 'error',
-          statusCode: 400,
-          message: 'Validation failed',
+          success: false,
+          data: null,
+          error: 'Validation failed',
         }),
       );
     });
@@ -46,9 +46,9 @@ describe('errorHandler middleware', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(404);
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: 'error',
-          statusCode: 404,
-          message: 'Resource not found',
+          success: false,
+          data: null,
+          error: 'Resource not found',
         }),
       );
     });
@@ -61,9 +61,9 @@ describe('errorHandler middleware', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(401);
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: 'error',
-          statusCode: 401,
-          message: 'Unauthorized access',
+          success: false,
+          data: null,
+          error: 'Unauthorized access',
         }),
       );
     });
@@ -86,9 +86,9 @@ describe('errorHandler middleware', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: 'error',
-          statusCode: 500,
-          message: 'Unexpected system error',
+          success: false,
+          data: null,
+          error: 'Unexpected system error',
         }),
       );
     });
@@ -108,7 +108,7 @@ describe('errorHandler middleware', () => {
 
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: 'Internal server error',
+          error: 'Internal server error',
         }),
       );
     });
@@ -209,9 +209,9 @@ describe('errorHandler middleware', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: 'error',
-          statusCode: 500,
-          message: 'Critical system failure',
+          success: false,
+          data: null,
+          error: 'Critical system failure',
         }),
       );
     });

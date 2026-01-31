@@ -25,17 +25,17 @@ export const errorHandler = (
   const isOperational = err instanceof AppError && err.isOperational;
   const statusCode = err instanceof AppError ? err.statusCode : 500;
 
-  // Base error response
+  // Base error response following consistent API format
   const errorResponse: {
-    status: 'error';
-    statusCode: number;
-    message: string;
+    success: false;
+    data: null;
+    error: string;
     stack?: string;
     isOperational?: boolean;
   } = {
-    status: 'error',
-    statusCode,
-    message: err.message || 'Internal server error',
+    success: false,
+    data: null,
+    error: err.message || 'Internal server error',
   };
 
   // Include additional details in development mode
