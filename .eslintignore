@@ -1,0 +1,7 @@
+dist
+node_modules
+coverage
+coverage-*
+*.js
+!.eslintrc.js
+!jest.config.js

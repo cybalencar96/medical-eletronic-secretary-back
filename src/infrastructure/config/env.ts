@@ -34,6 +34,8 @@ interface EnvConfig {
 
   // OpenAI API configuration (optional, will be required in future tasks)
   OPENAI_API_KEY?: string;
+  OPENAI_MODEL?: string;
+  LLM_MOCK_MODE?: boolean;
 
   // JWT configuration (optional, will be required in future tasks)
   JWT_SECRET?: string;
@@ -87,6 +89,8 @@ const loadEnvConfig = (): EnvConfig => {
 
     // OpenAI API configuration
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    OPENAI_MODEL: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+    LLM_MOCK_MODE: process.env.LLM_MOCK_MODE === 'true',
 
     // JWT configuration
     JWT_SECRET: process.env.JWT_SECRET,
