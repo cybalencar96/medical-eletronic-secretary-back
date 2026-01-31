@@ -126,7 +126,7 @@ export class OpenAIClient implements IOpenAIClient {
           LLM_ERROR_TYPES.INVALID_RESPONSE,
           500,
           {
-            requestId: completion._request_id,
+            requestId: completion._request_id ?? undefined,
             model: llmConfig.model,
           }
         );
@@ -137,7 +137,7 @@ export class OpenAIClient implements IOpenAIClient {
       logger.info(
         {
           correlationId: params.correlationId,
-          requestId: completion._request_id,
+          requestId: completion._request_id ?? undefined,
           model: completion.model,
           latency,
           promptTokens: completion.usage?.prompt_tokens,
@@ -170,7 +170,7 @@ export class OpenAIClient implements IOpenAIClient {
         {
           correlationId,
           statusCode: error.status,
-          requestId: error.request_id,
+          requestId: error.request_id ?? undefined,
           latency,
         },
         'OpenAI authentication error'
@@ -180,7 +180,7 @@ export class OpenAIClient implements IOpenAIClient {
         LLM_ERROR_TYPES.AUTHENTICATION_FAILED,
         401,
         {
-          requestId: error.request_id,
+          requestId: error.request_id ?? undefined,
           model: llmConfig.model,
         }
       );
@@ -192,7 +192,7 @@ export class OpenAIClient implements IOpenAIClient {
         {
           correlationId,
           statusCode: error.status,
-          requestId: error.request_id,
+          requestId: error.request_id ?? undefined,
           latency,
         },
         'OpenAI rate limit exceeded'
@@ -202,7 +202,7 @@ export class OpenAIClient implements IOpenAIClient {
         LLM_ERROR_TYPES.RATE_LIMIT_EXCEEDED,
         429,
         {
-          requestId: error.request_id,
+          requestId: error.request_id ?? undefined,
           model: llmConfig.model,
         }
       );
@@ -214,7 +214,7 @@ export class OpenAIClient implements IOpenAIClient {
         {
           correlationId,
           statusCode: error.status,
-          requestId: error.request_id,
+          requestId: error.request_id ?? undefined,
           errorMessage: error.message,
           latency,
         },
@@ -225,7 +225,7 @@ export class OpenAIClient implements IOpenAIClient {
         LLM_ERROR_TYPES.INVALID_RESPONSE,
         400,
         {
-          requestId: error.request_id,
+          requestId: error.request_id ?? undefined,
           model: llmConfig.model,
         }
       );
@@ -233,10 +233,12 @@ export class OpenAIClient implements IOpenAIClient {
 
     // Handle OpenAI SDK API errors (500+)
     if (error instanceof OpenAI.InternalServerError || error instanceof OpenAI.APIError) {
+      const statusCode =
+        error instanceof OpenAI.APIError && typeof error.status === 'number' ? error.status : 500;
       logger.error(
         {
           correlationId,
-          statusCode: error instanceof OpenAI.APIError ? error.status : 500,
+          statusCode,
           requestId: error instanceof OpenAI.APIError ? error.request_id : undefined,
           errorMessage: error.message,
           latency,
@@ -246,9 +248,9 @@ export class OpenAIClient implements IOpenAIClient {
       return new LLMError(
         `OpenAI API error: ${error.message}`,
         LLM_ERROR_TYPES.API_ERROR,
-        error instanceof OpenAI.APIError && error.status ? error.status : 500,
+        statusCode,
         {
-          requestId: error instanceof OpenAI.APIError ? error.request_id : undefined,
+          requestId: error instanceof OpenAI.APIError ? (error.request_id ?? undefined) : undefined,
           model: llmConfig.model,
         }
       );
