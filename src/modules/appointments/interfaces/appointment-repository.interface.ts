@@ -55,6 +55,18 @@ export interface IAppointmentRepository {
   findByDate(date: Date): Promise<Appointment[]>;
 
   /**
+   * Find all appointments within a date range
+   *
+   * Returns all appointments scheduled between start and end dates
+   * Used for reminder scheduling
+   *
+   * @param startDate - Start date of range
+   * @param endDate - End date of range
+   * @returns Promise<Appointment[]> - Array of appointments in range
+   */
+  findByDateRange(startDate: Date, endDate: Date): Promise<Appointment[]>;
+
+  /**
    * Update appointment
    *
    * @param id - UUID of appointment to update

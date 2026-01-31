@@ -182,6 +182,29 @@ export class AppointmentRepository implements IAppointmentRepository {
   }
 
   /**
+   * Find all appointments within a date range
+   *
+   * Returns all appointments scheduled between start and end dates
+   * Used for reminder scheduling
+   *
+   * @param startDate - Start date of range
+   * @param endDate - End date of range
+   * @returns Promise<Appointment[]> - Array of appointments in range
+   */
+  async findByDateRange(startDate: Date, endDate: Date): Promise<Appointment[]> {
+    logger.debug({ startDate, endDate }, 'Finding appointments by date range');
+
+    const rows = (await this.db(TABLE_NAME)
+      .where('scheduled_at', '>=', startDate)
+      .where('scheduled_at', '<=', endDate)
+      .orderBy('scheduled_at', 'asc')) as AppointmentRow[];
+
+    logger.debug({ startDate, endDate, count: rows.length }, 'Found appointments in date range');
+
+    return rows.map(mapToEntity);
+  }
+
+  /**
    * Update appointment
    *
    * @param id - UUID of appointment to update

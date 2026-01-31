@@ -40,7 +40,7 @@ export class MockLLMService implements IIntentClassifier {
         messageLength: message?.length,
         isMockMode: true,
       },
-      'Using mock LLM service for intent classification',
+      'Using mock LLM service for intent classification'
     );
 
     const lowerMessage = message.toLowerCase();
@@ -57,7 +57,7 @@ export class MockLLMService implements IIntentClassifier {
           intent: 'book',
           isMockMode: true,
         },
-        'Mock LLM classified as book intent',
+        'Mock LLM classified as book intent'
       );
 
       return {
@@ -82,12 +82,12 @@ export class MockLLMService implements IIntentClassifier {
           intent: 'reschedule',
           isMockMode: true,
         },
-        'Mock LLM classified as reschedule intent',
+        'Mock LLM classified as reschedule intent'
       );
 
       return {
         intent: 'reschedule',
-        confidence: 0.90,
+        confidence: 0.9,
         entities: {
           date: getNextSaturday(),
           reason: 'Mock reschedule reason',
@@ -103,7 +103,7 @@ export class MockLLMService implements IIntentClassifier {
           intent: 'cancel',
           isMockMode: true,
         },
-        'Mock LLM classified as cancel intent',
+        'Mock LLM classified as cancel intent'
       );
 
       return {
@@ -123,7 +123,7 @@ export class MockLLMService implements IIntentClassifier {
           intent: 'confirm',
           isMockMode: true,
         },
-        'Mock LLM classified as confirm intent',
+        'Mock LLM classified as confirm intent'
       );
 
       return {
@@ -148,7 +148,7 @@ export class MockLLMService implements IIntentClassifier {
           intent: 'query',
           isMockMode: true,
         },
-        'Mock LLM classified as query intent',
+        'Mock LLM classified as query intent'
       );
 
       return {
@@ -165,12 +165,12 @@ export class MockLLMService implements IIntentClassifier {
         intent: 'escalate',
         isMockMode: true,
       },
-      'Mock LLM classified as escalate intent (default)',
+      'Mock LLM classified as escalate intent (default)'
     );
 
     return {
       intent: 'escalate',
-      confidence: 0.30,
+      confidence: 0.3,
       entities: {},
     };
   }

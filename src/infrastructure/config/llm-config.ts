@@ -97,7 +97,7 @@ const loadLLMConfig = (): LLMConfig => {
     throw new AppError(
       'OPENAI_API_KEY environment variable is required when LLM_MOCK_MODE is not enabled',
       500,
-      false,
+      false
     );
   }
 

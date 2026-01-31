@@ -31,6 +31,7 @@ describe('AppointmentService', () => {
       findByPatientId: jest.fn(),
       findBySlot: jest.fn(),
       findByDate: jest.fn(),
+      findByDateRange: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
     } as jest.Mocked<IAppointmentRepository>;

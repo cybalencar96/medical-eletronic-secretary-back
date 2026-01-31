@@ -104,19 +104,11 @@ export const EXAMPLE_MESSAGES = {
     'Não posso comparecer, quero cancelar',
     'Preciso desmarcar, estou com um imprevisto',
   ],
-  confirm: [
-    'Sim, confirmo minha consulta',
-    'Confirmo presença',
-    'Estarei lá no sábado',
-  ],
+  confirm: ['Sim, confirmo minha consulta', 'Confirmo presença', 'Estarei lá no sábado'],
   query: [
     'Quais horários estão disponíveis?',
     'Vocês atendem aos sábados?',
     'Onde fica a clínica?',
   ],
-  escalate: [
-    'Oi tudo bem?',
-    'Quanto custa a consulta?',
-    'Preciso falar com o médico urgente',
-  ],
+  escalate: ['Oi tudo bem?', 'Quanto custa a consulta?', 'Preciso falar com o médico urgente'],
 };

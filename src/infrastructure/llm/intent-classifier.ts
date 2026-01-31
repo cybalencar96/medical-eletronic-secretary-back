@@ -78,7 +78,7 @@ export class IntentClassifier implements IIntentClassifier {
         correlationId,
         messageLength: message?.length,
       },
-      'Starting intent classification',
+      'Starting intent classification'
     );
 
     // Validate message
@@ -110,7 +110,7 @@ export class IntentClassifier implements IIntentClassifier {
             validationErrors: validationResult.error.issues,
             rawResult,
           },
-          'LLM response failed Zod validation',
+          'LLM response failed Zod validation'
         );
 
         throw new LLMError(
@@ -119,7 +119,7 @@ export class IntentClassifier implements IIntentClassifier {
           500,
           {
             model: llmConfig.model,
-          },
+          }
         );
       }
 
@@ -143,7 +143,7 @@ export class IntentClassifier implements IIntentClassifier {
             confidence: result.confidence,
             threshold: INTENT_CONSTANTS.CONFIDENCE_THRESHOLD,
           },
-          'Intent confidence below threshold - triggering escalation',
+          'Intent confidence below threshold - triggering escalation'
         );
 
         // Override intent to escalate
@@ -159,7 +159,7 @@ export class IntentClassifier implements IIntentClassifier {
           hasTime: !!result.entities.time,
           hasReason: !!result.entities.reason,
         },
-        'Intent classification successful',
+        'Intent classification successful'
       );
 
       return result;
@@ -175,17 +175,12 @@ export class IntentClassifier implements IIntentClassifier {
           correlationId,
           error: error instanceof Error ? error.message : String(error),
         },
-        'Unexpected error during intent classification',
+        'Unexpected error during intent classification'
       );
 
-      throw new LLMError(
-        'Intent classification failed',
-        LLM_ERROR_TYPES.UNKNOWN,
-        500,
-        {
-          model: llmConfig.model,
-        },
-      );
+      throw new LLMError('Intent classification failed', LLM_ERROR_TYPES.UNKNOWN, 500, {
+        model: llmConfig.model,
+      });
     }
   }
 
@@ -202,7 +197,7 @@ export class IntentClassifier implements IIntentClassifier {
       throw new LLMError(
         'Message cannot be null or undefined',
         LLM_ERROR_TYPES.VALIDATION_FAILED,
-        400,
+        400
       );
     }
 
@@ -217,7 +212,7 @@ export class IntentClassifier implements IIntentClassifier {
       throw new LLMError(
         `Message exceeds maximum length of ${INTENT_CONSTANTS.MAX_MESSAGE_LENGTH} characters`,
         LLM_ERROR_TYPES.VALIDATION_FAILED,
-        400,
+        400
       );
     }
   }

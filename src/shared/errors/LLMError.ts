@@ -16,7 +16,7 @@ export class LLMError extends AppError {
     metadata?: {
       requestId?: string;
       model?: string;
-    },
+    }
   ) {
     super(message, statusCode, true);
 

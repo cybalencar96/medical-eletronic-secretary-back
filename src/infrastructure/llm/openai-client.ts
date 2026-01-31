@@ -105,7 +105,7 @@ export class OpenAIClient implements IOpenAIClient {
         model: llmConfig.model,
         messageCount: params.messages.length,
       },
-      'Creating OpenAI chat completion request',
+      'Creating OpenAI chat completion request'
     );
 
     try {
@@ -128,7 +128,7 @@ export class OpenAIClient implements IOpenAIClient {
           {
             requestId: completion._request_id,
             model: llmConfig.model,
-          },
+          }
         );
       }
 
@@ -144,7 +144,7 @@ export class OpenAIClient implements IOpenAIClient {
           completionTokens: completion.usage?.completion_tokens,
           totalTokens: completion.usage?.total_tokens,
         },
-        'OpenAI chat completion successful',
+        'OpenAI chat completion successful'
       );
 
       return parsedResponse;
@@ -173,7 +173,7 @@ export class OpenAIClient implements IOpenAIClient {
           requestId: error.request_id,
           latency,
         },
-        'OpenAI authentication error',
+        'OpenAI authentication error'
       );
       return new LLMError(
         'OpenAI API authentication failed - check API key',
@@ -182,7 +182,7 @@ export class OpenAIClient implements IOpenAIClient {
         {
           requestId: error.request_id,
           model: llmConfig.model,
-        },
+        }
       );
     }
 
@@ -195,7 +195,7 @@ export class OpenAIClient implements IOpenAIClient {
           requestId: error.request_id,
           latency,
         },
-        'OpenAI rate limit exceeded',
+        'OpenAI rate limit exceeded'
       );
       return new LLMError(
         'OpenAI API rate limit exceeded',
@@ -204,7 +204,7 @@ export class OpenAIClient implements IOpenAIClient {
         {
           requestId: error.request_id,
           model: llmConfig.model,
-        },
+        }
       );
     }
 
@@ -218,7 +218,7 @@ export class OpenAIClient implements IOpenAIClient {
           errorMessage: error.message,
           latency,
         },
-        'OpenAI bad request error',
+        'OpenAI bad request error'
       );
       return new LLMError(
         `OpenAI API bad request: ${error.message}`,
@@ -227,7 +227,7 @@ export class OpenAIClient implements IOpenAIClient {
         {
           requestId: error.request_id,
           model: llmConfig.model,
-        },
+        }
       );
     }
 
@@ -241,7 +241,7 @@ export class OpenAIClient implements IOpenAIClient {
           errorMessage: error.message,
           latency,
         },
-        'OpenAI API server error',
+        'OpenAI API server error'
       );
       return new LLMError(
         `OpenAI API error: ${error.message}`,
@@ -250,7 +250,7 @@ export class OpenAIClient implements IOpenAIClient {
         {
           requestId: error instanceof OpenAI.APIError ? error.request_id : undefined,
           model: llmConfig.model,
-        },
+        }
       );
     }
 
@@ -261,16 +261,11 @@ export class OpenAIClient implements IOpenAIClient {
           correlationId,
           latency,
         },
-        'OpenAI API request timeout',
+        'OpenAI API request timeout'
       );
-      return new LLMError(
-        'OpenAI API request timeout',
-        LLM_ERROR_TYPES.TIMEOUT,
-        504,
-        {
-          model: llmConfig.model,
-        },
-      );
+      return new LLMError('OpenAI API request timeout', LLM_ERROR_TYPES.TIMEOUT, 504, {
+        model: llmConfig.model,
+      });
     }
 
     // Handle connection errors
@@ -281,16 +276,11 @@ export class OpenAIClient implements IOpenAIClient {
           errorMessage: error.message,
           latency,
         },
-        'OpenAI API connection error',
+        'OpenAI API connection error'
       );
-      return new LLMError(
-        'OpenAI API connection error',
-        LLM_ERROR_TYPES.NETWORK_ERROR,
-        500,
-        {
-          model: llmConfig.model,
-        },
-      );
+      return new LLMError('OpenAI API connection error', LLM_ERROR_TYPES.NETWORK_ERROR, 500, {
+        model: llmConfig.model,
+      });
     }
 
     // Handle JSON parsing errors
@@ -301,7 +291,7 @@ export class OpenAIClient implements IOpenAIClient {
           errorMessage: error.message,
           latency,
         },
-        'Failed to parse OpenAI JSON response',
+        'Failed to parse OpenAI JSON response'
       );
       return new LLMError(
         'Failed to parse OpenAI JSON response',
@@ -309,7 +299,7 @@ export class OpenAIClient implements IOpenAIClient {
         500,
         {
           model: llmConfig.model,
-        },
+        }
       );
     }
 
@@ -320,7 +310,7 @@ export class OpenAIClient implements IOpenAIClient {
         error: error instanceof Error ? error.message : String(error),
         latency,
       },
-      'Unexpected error in OpenAI client',
+      'Unexpected error in OpenAI client'
     );
 
     return new LLMError(
@@ -329,7 +319,7 @@ export class OpenAIClient implements IOpenAIClient {
       500,
       {
         model: llmConfig.model,
-      },
+      }
     );
   }
 }
