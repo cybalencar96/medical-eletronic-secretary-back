@@ -13,6 +13,9 @@ interface EnvConfig {
   NODE_ENV: string;
   PORT: number;
 
+  // Logging configuration
+  LOG_LEVEL?: string;
+
   // Database configuration (optional, will be required in future tasks)
   DB_HOST?: string;
   DB_PORT?: number;
@@ -67,6 +70,9 @@ const loadEnvConfig = (): EnvConfig => {
   return {
     NODE_ENV: process.env.NODE_ENV as string,
     PORT: parseInt(process.env.PORT as string, 10),
+
+    // Logging configuration
+    LOG_LEVEL: process.env.LOG_LEVEL,
 
     // Database configuration
     DB_HOST: process.env.DB_HOST,

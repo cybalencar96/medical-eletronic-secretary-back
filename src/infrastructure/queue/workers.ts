@@ -52,7 +52,20 @@ function defaultProcessor<T>(job: Job<T>): Promise<void> {
 }
 
 /**
+ * Extracts correlation ID from job data.
+ * Falls back to generating a new correlation ID if not present in job data.
+ *
+ * @param job - BullMQ job to extract correlation ID from
+ * @returns Correlation ID string
+ */
+function extractCorrelationId<T>(job: Job<T>): string {
+  const jobData = job.data as { correlationId?: string };
+  return jobData?.correlationId || job.id || 'unknown';
+}
+
+/**
  * Creates a BullMQ worker with error handling and logging.
+ * Automatically extracts correlation IDs from job data and includes them in all log entries.
  *
  * @param queueName - Name of the queue to process
  * @param processor - Job processor function
@@ -76,9 +89,13 @@ function createWorker<T>(queueName: string, processor: JobProcessor<T>): Worker<
     queueName,
     async (job: Job<T>) => {
       const startTime = Date.now();
+      const correlationId = extractCorrelationId(job);
+
+      // Create a child logger with correlation ID for this job
+      const jobLogger = logger.child({ correlationId });
 
       try {
-        logger.info(
+        jobLogger.info(
           {
             queue: queueName,
             jobId: job.id,
@@ -90,7 +107,7 @@ function createWorker<T>(queueName: string, processor: JobProcessor<T>): Worker<
         await processor(job);
 
         const duration = Date.now() - startTime;
-        logger.info(
+        jobLogger.info(
           {
             queue: queueName,
             jobId: job.id,
@@ -100,7 +117,7 @@ function createWorker<T>(queueName: string, processor: JobProcessor<T>): Worker<
         );
       } catch (error) {
         const duration = Date.now() - startTime;
-        logger.error(
+        jobLogger.error(
           {
             error,
             queue: queueName,
@@ -125,22 +142,26 @@ function createWorker<T>(queueName: string, processor: JobProcessor<T>): Worker<
 
   // Worker event handlers
   worker.on('completed', (job: Job<T>) => {
+    const correlationId = extractCorrelationId(job);
     logger.debug(
       {
         queue: queueName,
         jobId: job.id,
+        correlationId,
       },
       'Worker completed job'
     );
   });
 
   worker.on('failed', (job: Job<T> | undefined, error: Error) => {
+    const correlationId = job ? extractCorrelationId(job) : 'unknown';
     logger.error(
       {
         error,
         queue: queueName,
         jobId: job?.id,
         attemptsMade: job?.attemptsMade,
+        correlationId,
       },
       'Worker failed to process job'
     );

@@ -1,25 +1,38 @@
 import { Request, Response, NextFunction } from 'express';
 import { errorHandler } from '../../../../src/api/middleware/errorHandler';
 import { AppError } from '../../../../src/shared/errors/AppError';
+import { logger } from '../../../../src/infrastructure/config/logger';
+
+// Mock the logger
+jest.mock('../../../../src/infrastructure/config/logger', () => ({
+  logger: {
+    error: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
 
 describe('errorHandler middleware', () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let mockNext: NextFunction;
-  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
-    mockRequest = {};
+    // Reset mocks
+    jest.clearAllMocks();
+
+    // Setup mock request with correlation ID
+    mockRequest = {
+      id: 'test-correlation-id',
+      method: 'GET',
+      path: '/api/test',
+    };
     mockResponse = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn().mockReturnThis(),
     };
     mockNext = jest.fn();
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-  });
-
-  afterEach(() => {
-    consoleErrorSpy.mockRestore();
   });
 
   describe('operational errors (AppError)', () => {
@@ -68,12 +81,12 @@ describe('errorHandler middleware', () => {
       );
     });
 
-    it('should not log operational errors to console', () => {
+    it('should not log operational errors', () => {
       const error = new AppError('Validation failed', 400);
 
       errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
 
-      expect(consoleErrorSpy).not.toHaveBeenCalled();
+      expect(logger.error).not.toHaveBeenCalled();
     });
   });
 
@@ -93,12 +106,26 @@ describe('errorHandler middleware', () => {
       );
     });
 
-    it('should log unexpected errors to console', () => {
+    it('should log unexpected errors with correlation ID', () => {
       const error = new Error('Database connection failed');
 
       errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Unexpected error:', error);
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: expect.objectContaining({
+            message: 'Database connection failed',
+            stack: expect.any(String),
+            name: 'Error',
+          }),
+          correlationId: 'test-correlation-id',
+          statusCode: 500,
+          method: 'GET',
+          path: '/api/test',
+          isOperational: false,
+        }),
+        'Unexpected error occurred'
+      );
     });
 
     it('should return default message if error message is empty', () => {
@@ -110,6 +137,20 @@ describe('errorHandler middleware', () => {
         expect.objectContaining({
           error: 'Internal server error',
         }),
+      );
+    });
+
+    it('should use "unknown" correlation ID when request.id is not available', () => {
+      const error = new Error('Test error');
+      mockRequest.id = undefined;
+
+      errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.objectContaining({
+          correlationId: 'unknown',
+        }),
+        'Unexpected error occurred'
       );
     });
   });
@@ -193,12 +234,18 @@ describe('errorHandler middleware', () => {
   });
 
   describe('non-operational AppError', () => {
-    it('should log non-operational AppError instances', () => {
+    it('should log non-operational AppError instances with correlation ID', () => {
       const error = new AppError('Critical system failure', 500, false);
 
       errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Unexpected error:', error);
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.objectContaining({
+          correlationId: 'test-correlation-id',
+          isOperational: false,
+        }),
+        'Unexpected error occurred'
+      );
     });
 
     it('should still return correct status code for non-operational AppError', () => {
