@@ -7,7 +7,7 @@ dotenv.config();
 
 /**
  * Knex.js configuration for database migrations and connections
- * Supports multiple environments: development, staging, production
+ * Supports multiple environments: development, test, staging, production
  */
 const config: { [key: string]: Knex.Config } = {
   development: {
@@ -31,6 +31,26 @@ const config: { [key: string]: Knex.Config } = {
     seeds: {
       directory: path.join(__dirname, 'src/infrastructure/database/seeds'),
       extension: 'ts',
+    },
+  },
+
+  test: {
+    client: 'postgresql',
+    connection: {
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || '5432', 10),
+      database: 'medical_secretary_test',
+      user: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD || 'postgres',
+    },
+    pool: {
+      min: 1,
+      max: 5,
+    },
+    migrations: {
+      directory: path.join(__dirname, 'src/infrastructure/database/migrations'),
+      extension: 'ts',
+      tableName: 'knex_migrations',
     },
   },
 
