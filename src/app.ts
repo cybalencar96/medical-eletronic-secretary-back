@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import { logger } from './infrastructure/config/logger';
 import { errorHandler } from './api/middleware/errorHandler';
 import { webhookRouter } from './modules/whatsapp/routes/webhook.routes';
+import authRouter from './api/routes/auth.routes';
 import appointmentsRouter from './api/routes/appointments.routes';
 import escalationsRouter from './api/routes/escalations.routes';
 
@@ -75,7 +76,10 @@ const createApp = () => {
   // WhatsApp webhook routes
   app.use('/webhook', webhookRouter);
 
-  // Dashboard API routes
+  // Authentication routes (no JWT middleware)
+  app.use('/api/auth', authRouter);
+
+  // Dashboard API routes (protected by JWT middleware in each router)
   app.use('/api/appointments', appointmentsRouter);
   app.use('/api/escalations', escalationsRouter);
 

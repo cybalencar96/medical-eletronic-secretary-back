@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../../infrastructure/config/env';
 import { AppError } from '../../shared/errors/AppError';
+import { UserRole } from '../../shared/types/auth.types';
 
 /**
  * Extended Express Request interface with authenticated user information
@@ -10,6 +11,7 @@ export interface AuthenticatedRequest extends Request {
   user?: {
     userId: string;
     username: string;
+    role: UserRole;
   };
 }
 
@@ -19,6 +21,7 @@ export interface AuthenticatedRequest extends Request {
 interface JwtPayload {
   userId: string;
   username: string;
+  role: UserRole;
 }
 
 /**
@@ -32,7 +35,8 @@ interface JwtPayload {
  * @param req - Express request object
  * @param res - Express response object
  * @param next - Express next function
- * @throws {AppError} 401 if token is missing, invalid, or expired
+ * @throws {AppError} 401 if authorization header is missing or malformed
+ * @throws {AppError} 403 if token is invalid, expired, or malformed
  */
 export const authenticateJWT = (req: Request, _res: Response, next: NextFunction): void => {
   try {
@@ -59,14 +63,16 @@ export const authenticateJWT = (req: Request, _res: Response, next: NextFunction
     (req as AuthenticatedRequest).user = {
       userId: decoded.userId,
       username: decoded.username,
+      role: decoded.role,
     };
 
     next();
   } catch (error) {
-    if (error instanceof jwt.JsonWebTokenError) {
-      next(new AppError('Invalid or expired token', 401));
-    } else if (error instanceof jwt.TokenExpiredError) {
-      next(new AppError('Token has expired', 401));
+    // Check TokenExpiredError first since it extends JsonWebTokenError
+    if (error instanceof jwt.TokenExpiredError) {
+      next(new AppError('Token has expired', 403));
+    } else if (error instanceof jwt.JsonWebTokenError) {
+      next(new AppError('Invalid or malformed token', 403));
     } else {
       next(error);
     }
