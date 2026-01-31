@@ -3,10 +3,12 @@ import pinoHttp from 'pino-http';
 import { randomUUID } from 'crypto';
 import { logger } from './infrastructure/config/logger';
 import { errorHandler } from './api/middleware/errorHandler';
+import { authenticateJWT } from './api/middleware/jwt.middleware';
 import { webhookRouter } from './modules/whatsapp/routes/webhook.routes';
 import authRouter from './api/routes/auth.routes';
 import appointmentsRouter from './api/routes/appointments.routes';
 import escalationsRouter from './api/routes/escalations.routes';
+import { bullBoardRouter } from './infrastructure/queue';
 
 /**
  * Express application factory.
@@ -82,6 +84,9 @@ const createApp = () => {
   // Dashboard API routes (protected by JWT middleware in each router)
   app.use('/api/appointments', appointmentsRouter);
   app.use('/api/escalations', escalationsRouter);
+
+  // Bull Board queue monitoring UI (protected by JWT middleware)
+  app.use('/admin/queues', authenticateJWT, bullBoardRouter);
 
   // Centralized error handling middleware (must be last)
   app.use(errorHandler);

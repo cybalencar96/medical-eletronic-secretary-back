@@ -11,6 +11,10 @@ jest.mock('../../../../src/infrastructure/queue/workers', () => ({
   closeWorkers: jest.fn(),
 }));
 
+jest.mock('../../../../src/infrastructure/queue/board', () => ({
+  bullBoardRouter: {},
+}));
+
 describe('Queue Infrastructure Index', () => {
   beforeEach(() => {
     jest.clearAllMocks();

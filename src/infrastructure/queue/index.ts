@@ -33,6 +33,7 @@ export * from './types';
 export * from './connection';
 export * from './queues';
 export * from './workers';
+export * from './board';
 
 import { closeQueues } from './queues';
 import { closeWorkers } from './workers';
