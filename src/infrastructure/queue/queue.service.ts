@@ -1,17 +1,15 @@
-import { Queue } from 'bullmq';
-import { env } from '../config/env';
 import { logger } from '../config/logger';
-import {
-  WhatsAppMessageJob,
-  WHATSAPP_QUEUE_NAME,
-} from '../../modules/whatsapp/types/message-job.interface';
+import { queues } from './queues';
+import { WhatsAppMessageJob, QUEUE_NAMES } from './types';
 
 /**
  * BullMQ Queue Service for WhatsApp message processing.
  *
- * This service manages the BullMQ queue infrastructure for asynchronous
- * message processing. It provides methods to publish jobs to the queue
- * and handles Redis connection configuration.
+ * This service provides a high-level API for publishing jobs to queues.
+ * It wraps the underlying BullMQ queue infrastructure for ease of use.
+ *
+ * @deprecated This service is maintained for backward compatibility.
+ * New code should use the queue instances from './queues' directly.
  *
  * @example
  * ```typescript
@@ -28,46 +26,12 @@ import {
  * ```
  */
 export class QueueService {
-  private whatsappQueue: Queue<WhatsAppMessageJob>;
-
   /**
    * Creates a new QueueService instance.
-   * Initializes the BullMQ queue with Redis connection settings from environment.
+   * Uses the shared queue infrastructure from './queues'.
    */
   constructor() {
-    // Configure Redis connection from environment variables
-    const redisConfig = {
-      host: env.REDIS_HOST || 'localhost',
-      port: env.REDIS_PORT || 6379,
-      password: env.REDIS_PASSWORD,
-    };
-
-    // Initialize WhatsApp messages queue
-    this.whatsappQueue = new Queue<WhatsAppMessageJob>(WHATSAPP_QUEUE_NAME, {
-      connection: redisConfig,
-      defaultJobOptions: {
-        attempts: 3, // Retry failed jobs up to 3 times
-        backoff: {
-          type: 'exponential',
-          delay: 2000, // Start with 2 second delay, doubles each retry
-        },
-        removeOnComplete: {
-          age: 24 * 3600, // Keep completed jobs for 24 hours
-          count: 1000, // Keep last 1000 completed jobs
-        },
-        removeOnFail: {
-          age: 7 * 24 * 3600, // Keep failed jobs for 7 days
-        },
-      },
-    });
-
-    logger.info(
-      {
-        queue: WHATSAPP_QUEUE_NAME,
-        redis: { host: redisConfig.host, port: redisConfig.port },
-      },
-      'WhatsApp queue initialized'
-    );
+    logger.info('QueueService initialized (using shared queue infrastructure)');
   }
 
   /**
@@ -91,7 +55,7 @@ export class QueueService {
    */
   async publishMessage(jobData: WhatsAppMessageJob): Promise<void> {
     try {
-      await this.whatsappQueue.add('process-message', jobData, {
+      await queues.whatsappMessages.add('process-message', jobData, {
         jobId: jobData.messageId, // Use message ID as job ID to prevent duplicates
       });
 
@@ -120,21 +84,23 @@ export class QueueService {
    * Gracefully closes the queue connection.
    * Should be called during application shutdown.
    *
+   * @deprecated Use closeQueues() from './queues' instead.
    * @returns {Promise<void>}
    */
   async close(): Promise<void> {
-    await this.whatsappQueue.close();
-    logger.info({ queue: WHATSAPP_QUEUE_NAME }, 'Queue connection closed');
+    await queues.whatsappMessages.close();
+    logger.info({ queue: QUEUE_NAMES.WHATSAPP_MESSAGES }, 'Queue connection closed');
   }
 
   /**
    * Gets the underlying BullMQ queue instance.
    * Useful for advanced queue operations or testing.
    *
+   * @deprecated Access queues directly from './queues' instead.
    * @returns {Queue<WhatsAppMessageJob>}
    */
-  getQueue(): Queue<WhatsAppMessageJob> {
-    return this.whatsappQueue;
+  getQueue() {
+    return queues.whatsappMessages;
   }
 }
 
