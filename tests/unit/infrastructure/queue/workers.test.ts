@@ -237,5 +237,100 @@ describe('Queue Workers', () => {
       expect(mockOn).toHaveBeenCalledWith('failed', expect.any(Function));
       expect(mockOn).toHaveBeenCalledWith('error', expect.any(Function));
     });
+
+    it('should call completed event handler when job completes', () => {
+      const MockedWorker = Worker as jest.MockedClass<typeof Worker>;
+      const eventHandlers: Record<string, Function> = {};
+      (MockedWorker.prototype.on as any) = jest.fn((event: string, handler: Function) => {
+        eventHandlers[event] = handler;
+        return {} as Worker;
+      });
+
+      registerWorkers({
+        whatsappMessages: mockProcessor,
+      });
+
+      const mockJob = {
+        id: 'job-completed',
+        queueName: QUEUE_NAMES.WHATSAPP_MESSAGES,
+      } as Job<WhatsAppMessageJob>;
+
+      // Trigger completed event handler
+      eventHandlers['completed'](mockJob);
+
+      // Should not throw - handler just logs
+      expect(eventHandlers['completed']).toBeDefined();
+    });
+
+    it('should call failed event handler when job fails', () => {
+      const MockedWorker = Worker as jest.MockedClass<typeof Worker>;
+      const eventHandlers: Record<string, Function> = {};
+      (MockedWorker.prototype.on as any) = jest.fn((event: string, handler: Function) => {
+        eventHandlers[event] = handler;
+        return {} as Worker;
+      });
+
+      registerWorkers({
+        whatsappMessages: mockProcessor,
+      });
+
+      const mockJob = {
+        id: 'job-failed',
+        attemptsMade: 2,
+        queueName: QUEUE_NAMES.WHATSAPP_MESSAGES,
+      } as Job<WhatsAppMessageJob>;
+      const mockError = new Error('Job failed');
+
+      // Trigger failed event handler
+      eventHandlers['failed'](mockJob, mockError);
+
+      // Should not throw - handler just logs
+      expect(eventHandlers['failed']).toBeDefined();
+    });
+
+    it('should call error event handler when worker error occurs', () => {
+      const MockedWorker = Worker as jest.MockedClass<typeof Worker>;
+      const eventHandlers: Record<string, Function> = {};
+      (MockedWorker.prototype.on as any) = jest.fn((event: string, handler: Function) => {
+        eventHandlers[event] = handler;
+        return {} as Worker;
+      });
+
+      registerWorkers({
+        whatsappMessages: mockProcessor,
+      });
+
+      const mockError = new Error('Worker error');
+
+      // Trigger error event handler
+      eventHandlers['error'](mockError);
+
+      // Should not throw - handler just logs
+      expect(eventHandlers['error']).toBeDefined();
+    });
+  });
+
+  describe('Default Processor', () => {
+    it('should use default processor for queues without custom processor', async () => {
+      const MockedWorker = Worker as jest.MockedClass<typeof Worker>;
+
+      registerWorkers({
+        // No processors provided - all should use defaultProcessor
+      });
+
+      // Get the processor function for a queue without custom processor
+      const defaultProcessorFn = MockedWorker.mock.calls[1][1] as (
+        job: Job<any>
+      ) => Promise<void>;
+
+      const mockJob = {
+        id: 'job-default',
+        data: { test: 'data' },
+        queueName: QUEUE_NAMES.INTENT_CLASSIFICATION,
+      } as Job<any>;
+
+      // Should not throw - default processor just logs a warning
+      await expect(defaultProcessorFn(mockJob)).resolves.not.toThrow();
+    });
   });
 });
