@@ -7,7 +7,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "TZ=America/Sao_Paulo jest --coverage",
+    "test": "TZ=America/Sao_Paulo jest --coverage --testPathIgnorePatterns=/node_modules/ --testPathIgnorePatterns=tests/integration",
     "test:watch": "TZ=America/Sao_Paulo jest --watch",
     "test:integration": "TZ=America/Sao_Paulo jest --testPathPattern=integration",
     "lint": "eslint src --ext .ts",

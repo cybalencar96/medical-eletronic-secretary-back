@@ -4,6 +4,8 @@ import { randomUUID } from 'crypto';
 import { logger } from './infrastructure/config/logger';
 import { errorHandler } from './api/middleware/errorHandler';
 import { webhookRouter } from './modules/whatsapp/routes/webhook.routes';
+import appointmentsRouter from './api/routes/appointments.routes';
+import escalationsRouter from './api/routes/escalations.routes';
 
 /**
  * Express application factory.
@@ -73,8 +75,9 @@ const createApp = () => {
   // WhatsApp webhook routes
   app.use('/webhook', webhookRouter);
 
-  // API routes will be added in future tasks
-  // app.use('/api', apiRoutes);
+  // Dashboard API routes
+  app.use('/api/appointments', appointmentsRouter);
+  app.use('/api/escalations', escalationsRouter);
 
   // Centralized error handling middleware (must be last)
   app.use(errorHandler);
