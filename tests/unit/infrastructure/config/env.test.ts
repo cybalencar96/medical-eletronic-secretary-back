@@ -76,6 +76,16 @@ describe('Environment Configuration', () => {
     });
 
     it('should handle missing database configuration gracefully', async () => {
+      // Clear database env vars
+      delete process.env.DB_HOST;
+      delete process.env.DB_PORT;
+      delete process.env.DB_NAME;
+      delete process.env.DB_USER;
+      delete process.env.DB_PASSWORD;
+
+      // Clear module cache to force reload
+      jest.resetModules();
+
       const { env } = await import('../../../../src/infrastructure/config/env');
 
       expect(env.DB_HOST).toBeUndefined();
@@ -102,6 +112,14 @@ describe('Environment Configuration', () => {
     });
 
     it('should handle missing Redis configuration gracefully', async () => {
+      // Clear Redis env vars
+      delete process.env.REDIS_HOST;
+      delete process.env.REDIS_PORT;
+      delete process.env.REDIS_PASSWORD;
+
+      // Clear module cache to force reload
+      jest.resetModules();
+
       const { env } = await import('../../../../src/infrastructure/config/env');
 
       expect(env.REDIS_HOST).toBeUndefined();
@@ -122,6 +140,15 @@ describe('Environment Configuration', () => {
     });
 
     it('should handle missing WhatsApp configuration gracefully', async () => {
+      // Clear WhatsApp env vars
+      delete process.env.WHATSAPP_PHONE_ID;
+      delete process.env.WHATSAPP_ACCESS_TOKEN;
+      delete process.env.WHATSAPP_VERIFY_TOKEN;
+      delete process.env.WHATSAPP_WEBHOOK_SECRET;
+
+      // Clear module cache to force reload
+      jest.resetModules();
+
       const { env } = await import('../../../../src/infrastructure/config/env');
 
       expect(env.WHATSAPP_PHONE_ID).toBeUndefined();
@@ -145,6 +172,12 @@ describe('Environment Configuration', () => {
     });
 
     it('should handle missing OpenAI configuration gracefully', async () => {
+      // Clear OpenAI env vars
+      delete process.env.OPENAI_API_KEY;
+
+      // Clear module cache to force reload
+      jest.resetModules();
+
       const { env } = await import('../../../../src/infrastructure/config/env');
 
       expect(env.OPENAI_API_KEY).toBeUndefined();
@@ -159,6 +192,13 @@ describe('Environment Configuration', () => {
     });
 
     it('should handle missing JWT configuration gracefully', async () => {
+      // Clear JWT env vars
+      delete process.env.JWT_SECRET;
+      delete process.env.JWT_EXPIRES_IN;
+
+      // Clear module cache to force reload
+      jest.resetModules();
+
       const { env } = await import('../../../../src/infrastructure/config/env');
 
       expect(env.JWT_SECRET).toBeUndefined();

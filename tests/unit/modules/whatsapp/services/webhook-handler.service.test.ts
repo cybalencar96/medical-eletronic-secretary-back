@@ -376,8 +376,14 @@ describe('WebhookHandlerService', () => {
           }],
         };
 
-        await expect(service.processWebhook(payload, CORRELATION_ID)).rejects.toThrow(AppError);
-        await expect(service.processWebhook(payload, CORRELATION_ID)).rejects.toThrow('Failed to queue message');
+        // Call once and test both conditions on the same promise
+        try {
+          await service.processWebhook(payload, CORRELATION_ID);
+          fail('Should have thrown an error');
+        } catch (error) {
+          expect(error).toBeInstanceOf(AppError);
+          expect((error as AppError).message).toContain('Failed to queue message');
+        }
       });
 
       it('should include correlation ID in error when queue fails', async () => {
