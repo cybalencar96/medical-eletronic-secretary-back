@@ -26,10 +26,11 @@ interface EnvConfig {
   REDIS_PASSWORD?: string;
 
   // WhatsApp Cloud API configuration (optional, will be required in future tasks)
-  WHATSAPP_PHONE_NUMBER_ID?: string;
+  WHATSAPP_PHONE_ID?: string;
   WHATSAPP_ACCESS_TOKEN?: string;
   WHATSAPP_VERIFY_TOKEN?: string;
   WHATSAPP_WEBHOOK_SECRET?: string;
+  WHATSAPP_MOCK?: boolean;
 
   // OpenAI API configuration (optional, will be required in future tasks)
   OPENAI_API_KEY?: string;
@@ -78,10 +79,11 @@ const loadEnvConfig = (): EnvConfig => {
     REDIS_PASSWORD: process.env.REDIS_PASSWORD,
 
     // WhatsApp Cloud API configuration
-    WHATSAPP_PHONE_NUMBER_ID: process.env.WHATSAPP_PHONE_NUMBER_ID,
+    WHATSAPP_PHONE_ID: process.env.WHATSAPP_PHONE_ID,
     WHATSAPP_ACCESS_TOKEN: process.env.WHATSAPP_ACCESS_TOKEN,
     WHATSAPP_VERIFY_TOKEN: process.env.WHATSAPP_VERIFY_TOKEN,
     WHATSAPP_WEBHOOK_SECRET: process.env.WHATSAPP_WEBHOOK_SECRET,
+    WHATSAPP_MOCK: process.env.WHATSAPP_MOCK === 'true',
 
     // OpenAI API configuration
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,

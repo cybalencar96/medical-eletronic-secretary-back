@@ -124,21 +124,21 @@ describe('Environment Configuration', () => {
     it('should handle missing WhatsApp configuration gracefully', async () => {
       const { env } = await import('../../../../src/infrastructure/config/env');
 
-      expect(env.WHATSAPP_PHONE_NUMBER_ID).toBeUndefined();
+      expect(env.WHATSAPP_PHONE_ID).toBeUndefined();
       expect(env.WHATSAPP_ACCESS_TOKEN).toBeUndefined();
       expect(env.WHATSAPP_VERIFY_TOKEN).toBeUndefined();
       expect(env.WHATSAPP_WEBHOOK_SECRET).toBeUndefined();
     });
 
     it('should load WhatsApp configuration when provided', async () => {
-      process.env.WHATSAPP_PHONE_NUMBER_ID = '123456789';
+      process.env.WHATSAPP_PHONE_ID = '123456789';
       process.env.WHATSAPP_ACCESS_TOKEN = 'access_token';
       process.env.WHATSAPP_VERIFY_TOKEN = 'verify_token';
       process.env.WHATSAPP_WEBHOOK_SECRET = 'webhook_secret';
 
       const { env } = await import('../../../../src/infrastructure/config/env');
 
-      expect(env.WHATSAPP_PHONE_NUMBER_ID).toBe('123456789');
+      expect(env.WHATSAPP_PHONE_ID).toBe('123456789');
       expect(env.WHATSAPP_ACCESS_TOKEN).toBe('access_token');
       expect(env.WHATSAPP_VERIFY_TOKEN).toBe('verify_token');
       expect(env.WHATSAPP_WEBHOOK_SECRET).toBe('webhook_secret');
