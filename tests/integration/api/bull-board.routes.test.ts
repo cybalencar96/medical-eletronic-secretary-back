@@ -37,21 +37,21 @@ jest.mock('@bull-board/api/bullMQAdapter', () => ({
 }));
 
 jest.mock('@bull-board/express', () => {
-  const mockRouter: {
-    use: jest.Mock;
-    get: jest.Mock;
-    _handlers?: Record<string, unknown>;
-  } = {
-    use: jest.fn(),
-    get: jest.fn((path: string, handler: unknown): typeof mockRouter => {
-      // Simulate Bull Board UI route
-      if (path === '/') {
-        mockRouter._handlers = mockRouter._handlers || {};
-        mockRouter._handlers['/'] = handler;
-      }
-      return mockRouter;
-    }),
-  };
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const express = require('express');
+
+  // Create a real Express router for Bull Board mock
+  const mockRouter = express.Router();
+
+  // Add a GET / route that returns HTML (simulating Bull Board UI)
+  mockRouter.get('/', (_req: unknown, res: { type: (arg0: string) => { (): unknown; new(): unknown; send: { (arg0: string): void; new(): unknown; }; }; }) => {
+    res.type('text/html').send('<html><body>Bull Board Mock UI</body></html>');
+  });
+
+  // Add a catch-all route for static assets
+  mockRouter.get('*', (_req: unknown, res: { status: (arg0: number) => { (): unknown; new(): unknown; send: { (arg0: string): void; new(): unknown; }; }; }) => {
+    res.status(404).send('Not Found');
+  });
 
   return {
     ExpressAdapter: jest.fn().mockImplementation(() => ({
