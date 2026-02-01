@@ -18,7 +18,8 @@ import { logger } from '../config/logger';
 export const redisConnection: ConnectionOptions = {
   host: env.REDIS_HOST || 'localhost',
   port: env.REDIS_PORT || 6379,
-  password: env.REDIS_PASSWORD,
+  // Default to 'redis' for development/test environments (matches docker-compose defaults)
+  password: env.REDIS_PASSWORD || process.env.REDIS_PASSWORD || 'redis',
   maxRetriesPerRequest: null, // Required for BullMQ
   enableReadyCheck: true, // Ensures connection is ready before operations
   retryStrategy: (times: number) => {
