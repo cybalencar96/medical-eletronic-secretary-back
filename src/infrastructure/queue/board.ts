@@ -49,7 +49,7 @@ logger.info(
     queueCount: 4,
     queues: ['whatsapp-messages', 'intent-classification', 'notifications', 'escalations'],
   },
-  'Bull Board initialized'
+  `Bull Board initialized at https://server-ip:server-port/admin/queues`,
 );
 
 /**

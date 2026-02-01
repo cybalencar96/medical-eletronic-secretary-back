@@ -86,8 +86,12 @@ const createApp = () => {
   app.use('/api/appointments', appointmentsRouter);
   app.use('/api/escalations', escalationsRouter);
 
-  // Bull Board queue monitoring UI (protected by JWT middleware)
-  app.use('/admin/queues', authenticateJWT, bullBoardRouter);
+  // Bull Board queue monitoring UI (protected by JWT in production only)
+  if (process.env.NODE_ENV === 'production') {
+    app.use('/admin/queues', authenticateJWT, bullBoardRouter);
+  } else {
+    app.use('/admin/queues', bullBoardRouter);
+  }
 
   // Centralized error handling middleware (must be last)
   app.use(errorHandler);
