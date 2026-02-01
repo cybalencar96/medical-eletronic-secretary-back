@@ -199,9 +199,7 @@ describe('Auth API Integration Tests', () => {
   });
 
   describe('Protected route access with JWT token', () => {
-    // Skip this test as it requires full appointments module infrastructure (database, repositories)
-    // Auth middleware is already validated by other tests (token validation, rejection tests below)
-    it.skip('should access protected endpoint with valid token from login', async () => {
+    it('should access protected endpoint with valid token from login', async () => {
       // Login to get token
       const loginResponse = await request(app)
         .post('/api/auth/login')
