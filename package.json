@@ -12,7 +12,7 @@
     "test:infra": "docker compose --profile test up -d",
     "test:infra:down": "docker compose --profile test down",
     "pretest:integration": "npm run test:infra",
-    "test:integration": "TZ=America/Sao_Paulo jest --testPathPattern=integration",
+    "test:integration": "TZ=America/Sao_Paulo jest --testPathPattern=integration --runInBand",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
