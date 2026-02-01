@@ -8,3 +8,12 @@ export {
   waitForServices,
   type ServiceHealthOptions,
 } from './service-health';
+
+export { createTestRedisConnection, type TestRedisConnection } from './redis-connection';
+
+export {
+  createTransactionContext,
+  replaceGlobalConnection,
+  restoreGlobalConnection,
+  type TransactionContext,
+} from './transaction-context';
