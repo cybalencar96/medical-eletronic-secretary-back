@@ -4,86 +4,27 @@
  * Tests for patient repository with real database operations
  */
 
-import { Client } from 'pg';
-import knex, { Knex } from 'knex';
-import knexConfig from '../../../../knexfile';
 import { PatientRepository } from '../../../../src/modules/patients/patient.repository';
 import { CreatePatientDTO } from '../../../../src/modules/patients/interfaces/patient.interface';
-
-/**
- * Check if Docker services (PostgreSQL) are available
- */
-async function areDockerServicesAvailable(): Promise<boolean> {
-  const client = new Client({
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '5432', 10),
-    database: 'postgres',
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'postgres',
-  });
-
-  try {
-    await client.connect();
-    await client.end();
-    return true;
-  } catch {
-    return false;
-  }
-}
+import db from '../../../../src/infrastructure/database/connection';
+import { createTransactionContext, TransactionContext } from '../../../utils/transaction-context';
 
 describe('Patient Repository Integration Tests', () => {
-  let db: Knex;
   let patientRepository: PatientRepository;
-  let servicesAvailable: boolean;
+  let txContext: TransactionContext;
 
-  beforeAll(async () => {
-    servicesAvailable = await areDockerServicesAvailable();
-
-    if (!servicesAvailable) {
-      console.warn('PostgreSQL is not available. Skipping integration tests.');
-      return;
-    }
-
-    // Use test database configuration
-    const testConfig = {
-      ...knexConfig.development,
-      connection: {
-        ...(knexConfig.development.connection as Knex.PgConnectionConfig),
-        database: 'medical_secretary_test',
-      },
-    };
-    db = knex(testConfig);
-
-    // Ensure clean state and run migrations
-    await db.migrate.rollback(undefined, true);
-    await db.migrate.latest();
-
-    // Create repository instance with test database
+  beforeEach(async () => {
+    txContext = createTransactionContext();
+    await txContext.setup();
     patientRepository = new PatientRepository(db);
   });
 
-  afterAll(async () => {
-    if (servicesAvailable && db) {
-      await db.migrate.rollback(undefined, true);
-      await db.destroy();
-    }
-  });
-
-  beforeEach(async () => {
-    if (!servicesAvailable) return;
-
-    // Clean up test data before each test
-    await db('notifications_sent').del();
-    await db('escalations').del();
-    await db('audit_logs').del();
-    await db('appointments').del();
-    await db('patients').del();
+  afterEach(async () => {
+    await txContext.teardown();
   });
 
   describe('create', () => {
     it('should create a patient record in database', async () => {
-      if (!servicesAvailable) return;
-
       const patientData: CreatePatientDTO = {
         phone: '+5511999999999',
         cpf: '12345678909',
@@ -104,8 +45,6 @@ describe('Patient Repository Integration Tests', () => {
     });
 
     it('should create patient with null consent_given_at', async () => {
-      if (!servicesAvailable) return;
-
       const patientData: CreatePatientDTO = {
         phone: '+5511888888888',
         cpf: '98765432100',
@@ -119,8 +58,6 @@ describe('Patient Repository Integration Tests', () => {
     });
 
     it('should enforce unique constraint on phone number', async () => {
-      if (!servicesAvailable) return;
-
       const patientData: CreatePatientDTO = {
         phone: '+5511999999999',
         cpf: '12345678909',
@@ -143,8 +80,6 @@ describe('Patient Repository Integration Tests', () => {
 
   describe('findByPhone', () => {
     it('should find patient by phone number', async () => {
-      if (!servicesAvailable) return;
-
       const patientData: CreatePatientDTO = {
         phone: '+5511999999999',
         cpf: '12345678909',
@@ -164,16 +99,12 @@ describe('Patient Repository Integration Tests', () => {
     });
 
     it('should return null when patient not found by phone', async () => {
-      if (!servicesAvailable) return;
-
       const foundPatient = await patientRepository.findByPhone('+5511000000000');
 
       expect(foundPatient).toBeNull();
     });
 
     it('should find correct patient when multiple patients exist', async () => {
-      if (!servicesAvailable) return;
-
       const patient1Data: CreatePatientDTO = {
         phone: '+5511111111111',
         cpf: '11111111111',
@@ -199,8 +130,6 @@ describe('Patient Repository Integration Tests', () => {
 
   describe('findById', () => {
     it('should find patient by ID', async () => {
-      if (!servicesAvailable) return;
-
       const patientData: CreatePatientDTO = {
         phone: '+5511999999999',
         cpf: '12345678909',
@@ -220,8 +149,6 @@ describe('Patient Repository Integration Tests', () => {
     });
 
     it('should return null when patient not found by ID', async () => {
-      if (!servicesAvailable) return;
-
       const foundPatient = await patientRepository.findById('123e4567-e89b-12d3-a456-426614174000');
 
       expect(foundPatient).toBeNull();
@@ -230,8 +157,6 @@ describe('Patient Repository Integration Tests', () => {
 
   describe('update', () => {
     it('should update patient record', async () => {
-      if (!servicesAvailable) return;
-
       const patientData: CreatePatientDTO = {
         phone: '+5511999999999',
         cpf: '12345678909',
@@ -251,8 +176,6 @@ describe('Patient Repository Integration Tests', () => {
     });
 
     it('should update patient name', async () => {
-      if (!servicesAvailable) return;
-
       const patientData: CreatePatientDTO = {
         phone: '+5511999999999',
         cpf: '12345678909',
@@ -271,8 +194,6 @@ describe('Patient Repository Integration Tests', () => {
     });
 
     it('should update patient CPF', async () => {
-      if (!servicesAvailable) return;
-
       const patientData: CreatePatientDTO = {
         phone: '+5511999999999',
         cpf: '12345678909',
@@ -293,8 +214,6 @@ describe('Patient Repository Integration Tests', () => {
 
   describe('database transaction rollback', () => {
     it('should rollback transaction on error', async () => {
-      if (!servicesAvailable) return;
-
       const patientData: CreatePatientDTO = {
         phone: '+5511999999999',
         cpf: '12345678909',

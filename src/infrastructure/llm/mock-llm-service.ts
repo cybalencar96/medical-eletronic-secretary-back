@@ -34,6 +34,9 @@ export class MockLLMService implements IIntentClassifier {
    * @returns {Promise<ClassifiedIntent>} Classified intent with mock entities
    */
   async classify(message: string, correlationId?: string): Promise<ClassifiedIntent> {
+    // Satisfy async requirement
+    await Promise.resolve();
+
     logger.debug(
       {
         correlationId,
