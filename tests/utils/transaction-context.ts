@@ -13,13 +13,13 @@ export interface TransactionContext {
   trx: Knex.Transaction;
 
   /**
-   * Setup method that replaces the global database connection with the transaction
+   * Setup method that creates the transaction
    * Should be called in beforeEach or at the start of each test
    */
   setup(): Promise<void>;
 
   /**
-   * Teardown method that rolls back the transaction and restores the global connection
+   * Teardown method that rolls back the transaction
    * Should be called in afterEach or at the end of each test
    * Ensures all database changes are rolled back automatically
    */
@@ -27,48 +27,19 @@ export interface TransactionContext {
 }
 
 /**
- * Store the original global connection for restoration
- * This allows us to swap the connection during tests
+ * Active transaction reference for the current test
+ * Used by getTestDb() to return either the transaction or the global db
  */
-let originalConnection: Knex | null = null;
+let activeTransaction: Knex.Transaction | null = null;
 
 /**
- * Replaces the global database connection with a transaction
- * This enables all code using the global 'db' import to use the transaction instead
+ * Gets the current database connection for tests
+ * Returns the active transaction if one exists, otherwise returns the global db
  *
- * @param trx - Knex transaction to use as the global connection
- *
- * @internal
+ * @returns Knex instance (transaction or global connection)
  */
-export function replaceGlobalConnection(trx: Knex.Transaction): void {
-  // Store the original connection if not already stored
-  if (originalConnection === null) {
-    originalConnection = db;
-  }
-
-  // Replace all query methods with transaction methods
-  // This is a type-safe way to replace the connection
-  Object.setPrototypeOf(db, Object.getPrototypeOf(trx));
-  Object.assign(db, trx);
-}
-
-/**
- * Restores the original global database connection
- * Should be called after rolling back the transaction
- *
- * @internal
- */
-export function restoreGlobalConnection(): void {
-  if (originalConnection === null) {
-    return;
-  }
-
-  // Restore the original connection
-  Object.setPrototypeOf(db, Object.getPrototypeOf(originalConnection));
-  Object.assign(db, originalConnection);
-
-  // Clear the stored reference
-  originalConnection = null;
+export function getTestDb(): Knex | Knex.Transaction {
+  return activeTransaction || db;
 }
 
 /**
@@ -84,7 +55,7 @@ export function restoreGlobalConnection(): void {
  *   let txContext: TransactionContext;
  *
  *   beforeEach(async () => {
- *     txContext = await createTransactionContext();
+ *     txContext = createTransactionContext();
  *     await txContext.setup();
  *   });
  *
@@ -93,7 +64,7 @@ export function restoreGlobalConnection(): void {
  *   });
  *
  *   it('should create appointment', async () => {
- *     const repository = new AppointmentRepository();
+ *     const repository = new AppointmentRepository(getTestDb());
  *     const appointment = await repository.create({ ... });
  *     // Appointment will be rolled back automatically
  *   });
@@ -114,27 +85,35 @@ export function createTransactionContext(database: Knex = db): TransactionContex
     async setup(): Promise<void> {
       // Create a new transaction
       transaction = await database.transaction();
-
-      // Replace the global connection with this transaction
-      replaceGlobalConnection(transaction);
+      // Set as the active transaction for getTestDb()
+      activeTransaction = transaction;
     },
 
     async teardown(): Promise<void> {
       try {
-        // Restore the global connection first
-        restoreGlobalConnection();
-
-        // Rollback the transaction if it exists
-        if (transaction) {
+        // Rollback the transaction if it exists and is not completed
+        if (transaction && !transaction.isCompleted()) {
           await transaction.rollback();
-          transaction = null;
         }
       } catch (error) {
-        // Ensure transaction is cleared even if rollback fails
+        // Ignore rollback errors (transaction may already be complete)
+        // eslint-disable-next-line no-console
+        console.warn('Transaction rollback warning:', error);
+      } finally {
+        // Clear the active transaction
+        activeTransaction = null;
         transaction = null;
-        // Re-throw to make test failures visible
-        throw error;
       }
     },
   };
+}
+
+// Legacy exports for backwards compatibility
+export function replaceGlobalConnection(_trx: Knex.Transaction): void {
+  // No-op for backwards compatibility
+  // Use getTestDb() instead
+}
+
+export function restoreGlobalConnection(): void {
+  // No-op for backwards compatibility
 }

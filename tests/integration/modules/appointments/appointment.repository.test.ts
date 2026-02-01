@@ -6,8 +6,7 @@
 
 import { AppointmentRepository } from '../../../../src/modules/appointments/appointment.repository';
 import { AppointmentStatus } from '../../../../src/modules/appointments/types/appointment.types';
-import db from '../../../../src/infrastructure/database/connection';
-import { createTransactionContext, TransactionContext } from '../../../utils/transaction-context';
+import { createTransactionContext, TransactionContext, getTestDb } from '../../../utils/transaction-context';
 
 describe('AppointmentRepository Integration Tests', () => {
   let repository: AppointmentRepository;
@@ -17,10 +16,10 @@ describe('AppointmentRepository Integration Tests', () => {
   beforeEach(async () => {
     txContext = createTransactionContext();
     await txContext.setup();
-    repository = new AppointmentRepository(db);
+    repository = new AppointmentRepository(getTestDb());
 
     // Create test patient for foreign key constraint
-    const [patient] = await db('patients')
+    const [patient] = await getTestDb()('patients')
       .insert({
         name: 'Test Patient',
         cpf: '12345678900',
@@ -60,7 +59,7 @@ describe('AppointmentRepository Integration Tests', () => {
         scheduledAt,
       });
 
-      const dbRow = await db('appointments').where({ id: appointment.id }).first();
+      const dbRow = await getTestDb()('appointments').where({ id: appointment.id }).first();
 
       expect(dbRow).toBeDefined();
       expect(dbRow.patient_id).toBe(testPatientId);
@@ -95,7 +94,7 @@ describe('AppointmentRepository Integration Tests', () => {
     });
 
     it('should return null when appointment not found', async () => {
-      const found = await repository.findById('non-existent-id');
+      const found = await repository.findById('00000000-0000-0000-0000-000000000000');
 
       expect(found).toBeNull();
     });
@@ -131,7 +130,7 @@ describe('AppointmentRepository Integration Tests', () => {
     });
 
     it('should return empty array when no appointments found', async () => {
-      const appointments = await repository.findByPatientId('non-existent-patient');
+      const appointments = await repository.findByPatientId('00000000-0000-0000-0000-000000000001');
 
       expect(appointments).toEqual([]);
     });
@@ -292,7 +291,7 @@ describe('AppointmentRepository Integration Tests', () => {
 
     it('should throw error if appointment not found', async () => {
       await expect(
-        repository.update('non-existent-id', { status: AppointmentStatus.CONFIRMED }),
+        repository.update('00000000-0000-0000-0000-000000000000', { status: AppointmentStatus.CONFIRMED }),
       ).rejects.toThrow();
     });
   });
@@ -314,7 +313,7 @@ describe('AppointmentRepository Integration Tests', () => {
 
       await repository.delete(created.id);
 
-      const dbRow = await db('appointments').where({ id: created.id }).first();
+      const dbRow = await getTestDb()('appointments').where({ id: created.id }).first();
       expect(dbRow).toBeDefined();
     });
   });
@@ -324,7 +323,7 @@ describe('AppointmentRepository Integration Tests', () => {
       const scheduledAt = new Date(2024, 0, 6, 9, 0);
 
       await expect(
-        repository.create({ patientId: 'non-existent-patient', scheduledAt }),
+        repository.create({ patientId: '00000000-0000-0000-0000-000000000001', scheduledAt }),
       ).rejects.toThrow();
     });
 

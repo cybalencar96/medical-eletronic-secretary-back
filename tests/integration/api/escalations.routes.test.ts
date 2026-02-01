@@ -5,8 +5,7 @@
 import request from 'supertest';
 import { app } from '../../../src/app';
 import jwt from 'jsonwebtoken';
-import db from '../../../src/infrastructure/database/connection';
-import { createTransactionContext, TransactionContext } from '../../utils/transaction-context';
+import { createTransactionContext, TransactionContext, getTestDb } from '../../utils/transaction-context';
 
 // Mock JWT secret
 jest.mock('../../../src/infrastructure/config/env', () => ({
@@ -33,7 +32,7 @@ describe('Escalations API Integration Tests', () => {
     await txContext.setup();
 
     // Create test patient
-    const [patient] = await db('patients')
+    const [patient] = await getTestDb()('patients')
       .insert({
         phone: '+5511999999999',
         cpf: '12345678901',
@@ -45,7 +44,7 @@ describe('Escalations API Integration Tests', () => {
     testPatientId = patient.id;
 
     // Create test escalation
-    const [escalation] = await db('escalations')
+    const [escalation] = await getTestDb()('escalations')
       .insert({
         patient_id: testPatientId,
         message: 'Test message requiring escalation',
@@ -153,7 +152,7 @@ describe('Escalations API Integration Tests', () => {
         })
         .expect(200);
 
-      const escalation = await db('escalations').where({ id: testEscalationId }).first();
+      const escalation = await getTestDb()('escalations').where({ id: testEscalationId }).first();
 
       expect(escalation.resolved_by).toBe('dr.jones');
       expect(escalation.resolved_at).toBeDefined();

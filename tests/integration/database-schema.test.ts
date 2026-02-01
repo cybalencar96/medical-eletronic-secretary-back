@@ -1,5 +1,4 @@
-import db from '../../src/infrastructure/database/connection';
-import { createTransactionContext, TransactionContext } from '../utils/transaction-context';
+import { createTransactionContext, TransactionContext, getTestDb } from '../utils/transaction-context';
 
 describe('Database Schema Integration Tests', () => {
   let txContext: TransactionContext;
@@ -20,14 +19,14 @@ describe('Database Schema Integration Tests', () => {
         name: 'John Doe',
       };
 
-      await db('patients').insert(patient);
+      await getTestDb()('patients').insert(patient);
 
       // Attempt to insert duplicate phone
-      await expect(db('patients').insert(patient)).rejects.toThrow();
+      await expect(getTestDb()('patients').insert(patient)).rejects.toThrow();
     });
 
     it('should auto-generate UUID for patient ID', async () => {
-        const [patient] = await db('patients')
+        const [patient] = await getTestDb()('patients')
         .insert({
           phone: '+5511999999999',
           name: 'John Doe',
@@ -41,7 +40,7 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should auto-populate created_at timestamp', async () => {
-        const [patient] = await db('patients')
+        const [patient] = await getTestDb()('patients')
         .insert({
           phone: '+5511999999999',
           name: 'John Doe',
@@ -53,7 +52,7 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should allow nullable consent_given_at', async () => {
-        const [patient] = await db('patients')
+        const [patient] = await getTestDb()('patients')
         .insert({
           phone: '+5511999999999',
           name: 'John Doe',
@@ -68,7 +67,7 @@ describe('Database Schema Integration Tests', () => {
     let patientId: string;
 
     beforeEach(async () => {
-        const [patient] = await db('patients')
+        const [patient] = await getTestDb()('patients')
         .insert({
           phone: '+5511999999999',
           name: 'John Doe',
@@ -83,11 +82,11 @@ describe('Database Schema Integration Tests', () => {
         scheduled_at: new Date(),
       };
 
-      await expect(db('appointments').insert(appointment)).rejects.toThrow();
+      await expect(getTestDb()('appointments').insert(appointment)).rejects.toThrow();
     });
 
     it('should cascade delete appointments when patient is deleted', async () => {
-        const [appointment] = await db('appointments')
+        const [appointment] = await getTestDb()('appointments')
         .insert({
           patient_id: patientId,
           scheduled_at: new Date(),
@@ -96,14 +95,14 @@ describe('Database Schema Integration Tests', () => {
 
       expect(appointment).toBeDefined();
 
-      await db('patients').where({ id: patientId }).del();
+      await getTestDb()('patients').where({ id: patientId }).del();
 
-      const appointments = await db('appointments').where({ patient_id: patientId });
+      const appointments = await getTestDb()('appointments').where({ patient_id: patientId });
       expect(appointments).toHaveLength(0);
     });
 
     it('should default status to scheduled', async () => {
-        const [appointment] = await db('appointments')
+        const [appointment] = await getTestDb()('appointments')
         .insert({
           patient_id: patientId,
           scheduled_at: new Date(),
@@ -117,7 +116,7 @@ describe('Database Schema Integration Tests', () => {
         const validStatuses = ['scheduled', 'confirmed', 'cancelled', 'completed', 'no_show'];
 
       for (const status of validStatuses) {
-        const [appointment] = await db('appointments')
+        const [appointment] = await getTestDb()('appointments')
           .insert({
             patient_id: patientId,
             scheduled_at: new Date(),
@@ -130,7 +129,7 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should auto-populate created_at and updated_at timestamps', async () => {
-        const [appointment] = await db('appointments')
+        const [appointment] = await getTestDb()('appointments')
         .insert({
           patient_id: patientId,
           scheduled_at: new Date(),
@@ -147,7 +146,7 @@ describe('Database Schema Integration Tests', () => {
     let patientId: string;
 
     beforeEach(async () => {
-        const [patient] = await db('patients')
+        const [patient] = await getTestDb()('patients')
         .insert({
           phone: '+5511999999999',
           name: 'John Doe',
@@ -163,7 +162,7 @@ describe('Database Schema Integration Tests', () => {
         payload: { test: 'data' },
       };
 
-      await expect(db('audit_logs').insert(auditLog)).rejects.toThrow();
+      await expect(getTestDb()('audit_logs').insert(auditLog)).rejects.toThrow();
     });
 
     it('should accept JSONB payload data', async () => {
@@ -176,28 +175,28 @@ describe('Database Schema Integration Tests', () => {
         },
       };
 
-      const [auditLog] = await db('audit_logs')
+      const [auditLog] = await getTestDb()('audit_logs')
         .insert({
           patient_id: patientId,
           action: 'appointment_booked',
-          payload: JSON.stringify(payload),
+          payload,  // Knex handles JSONB serialization automatically
         })
         .returning('*');
 
       expect(auditLog.payload).toBeDefined();
-      const parsedPayload = JSON.parse(auditLog.payload);
-      expect(parsedPayload).toEqual(payload);
+      // Knex/PostgreSQL returns JSONB as parsed object
+      expect(auditLog.payload).toEqual(payload);
     });
 
     it('should cascade delete audit logs when patient is deleted', async () => {
-        await db('audit_logs').insert({
+        await getTestDb()('audit_logs').insert({
         patient_id: patientId,
         action: 'patient_created',
       });
 
-      await db('patients').where({ id: patientId }).del();
+      await getTestDb()('patients').where({ id: patientId }).del();
 
-      const auditLogs = await db('audit_logs').where({ patient_id: patientId });
+      const auditLogs = await getTestDb()('audit_logs').where({ patient_id: patientId });
       expect(auditLogs).toHaveLength(0);
     });
   });
@@ -206,7 +205,7 @@ describe('Database Schema Integration Tests', () => {
     let patientId: string;
 
     beforeEach(async () => {
-        const [patient] = await db('patients')
+        const [patient] = await getTestDb()('patients')
         .insert({
           phone: '+5511999999999',
           name: 'John Doe',
@@ -222,11 +221,11 @@ describe('Database Schema Integration Tests', () => {
         reason: 'low_confidence',
       };
 
-      await expect(db('escalations').insert(escalation)).rejects.toThrow();
+      await expect(getTestDb()('escalations').insert(escalation)).rejects.toThrow();
     });
 
     it('should allow nullable resolved_at and resolved_by', async () => {
-        const [escalation] = await db('escalations')
+        const [escalation] = await getTestDb()('escalations')
         .insert({
           patient_id: patientId,
           message: 'Test escalation',
@@ -239,15 +238,15 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should cascade delete escalations when patient is deleted', async () => {
-        await db('escalations').insert({
+        await getTestDb()('escalations').insert({
         patient_id: patientId,
         message: 'Test escalation',
         reason: 'low_confidence',
       });
 
-      await db('patients').where({ id: patientId }).del();
+      await getTestDb()('patients').where({ id: patientId }).del();
 
-      const escalations = await db('escalations').where({ patient_id: patientId });
+      const escalations = await getTestDb()('escalations').where({ patient_id: patientId });
       expect(escalations).toHaveLength(0);
     });
   });
@@ -257,7 +256,7 @@ describe('Database Schema Integration Tests', () => {
     let appointmentId: string;
 
     beforeEach(async () => {
-        const [patient] = await db('patients')
+        const [patient] = await getTestDb()('patients')
         .insert({
           phone: '+5511999999999',
           name: 'John Doe',
@@ -265,7 +264,7 @@ describe('Database Schema Integration Tests', () => {
         .returning('*');
       patientId = patient.id;
 
-      const [appointment] = await db('appointments')
+      const [appointment] = await getTestDb()('appointments')
         .insert({
           patient_id: patientId,
           scheduled_at: new Date(),
@@ -280,7 +279,7 @@ describe('Database Schema Integration Tests', () => {
         type: 'reminder_48h',
       };
 
-      await expect(db('notifications_sent').insert(notification)).rejects.toThrow();
+      await expect(getTestDb()('notifications_sent').insert(notification)).rejects.toThrow();
     });
 
     it('should enforce unique constraint on appointment_id and type combination', async () => {
@@ -289,45 +288,45 @@ describe('Database Schema Integration Tests', () => {
         type: 'reminder_48h',
       };
 
-      await db('notifications_sent').insert(notification);
+      await getTestDb()('notifications_sent').insert(notification);
 
       // Attempt to insert duplicate
-      await expect(db('notifications_sent').insert(notification)).rejects.toThrow();
+      await expect(getTestDb()('notifications_sent').insert(notification)).rejects.toThrow();
     });
 
     it('should allow multiple notifications of different types for same appointment', async () => {
-        await db('notifications_sent').insert({
+        await getTestDb()('notifications_sent').insert({
         appointment_id: appointmentId,
         type: 'reminder_48h',
       });
 
-      await db('notifications_sent').insert({
+      await getTestDb()('notifications_sent').insert({
         appointment_id: appointmentId,
         type: 'reminder_72h',
       });
 
-      const notifications = await db('notifications_sent').where({
+      const notifications = await getTestDb()('notifications_sent').where({
         appointment_id: appointmentId,
       });
       expect(notifications).toHaveLength(2);
     });
 
     it('should cascade delete notifications when appointment is deleted', async () => {
-        await db('notifications_sent').insert({
+        await getTestDb()('notifications_sent').insert({
         appointment_id: appointmentId,
         type: 'reminder_48h',
       });
 
-      await db('appointments').where({ id: appointmentId }).del();
+      await getTestDb()('appointments').where({ id: appointmentId }).del();
 
-      const notifications = await db('notifications_sent').where({
+      const notifications = await getTestDb()('notifications_sent').where({
         appointment_id: appointmentId,
       });
       expect(notifications).toHaveLength(0);
     });
 
     it('should auto-populate sent_at timestamp', async () => {
-        const [notification] = await db('notifications_sent')
+        const [notification] = await getTestDb()('notifications_sent')
         .insert({
           appointment_id: appointmentId,
           type: 'reminder_48h',
@@ -341,7 +340,7 @@ describe('Database Schema Integration Tests', () => {
 
   describe('Edge Cases', () => {
     it('should handle large JSONB payloads in audit_logs', async () => {
-        const [patient] = await db('patients')
+        const [patient] = await getTestDb()('patients')
         .insert({
           phone: '+5511999999999',
           name: 'John Doe',
@@ -358,36 +357,36 @@ describe('Database Schema Integration Tests', () => {
           })),
       };
 
-      const [auditLog] = await db('audit_logs')
+      const [auditLog] = await getTestDb()('audit_logs')
         .insert({
           patient_id: patient.id,
           action: 'conversation_log',
-          payload: JSON.stringify(largePayload),
+          payload: largePayload,  // Knex handles JSONB serialization automatically
         })
         .returning('*');
 
       expect(auditLog.payload).toBeDefined();
-      const parsedPayload = JSON.parse(auditLog.payload);
-      expect(parsedPayload.messages).toHaveLength(100);
+      // Knex/PostgreSQL returns JSONB as parsed object
+      expect(auditLog.payload.messages).toHaveLength(100);
     });
 
     it('should prevent orphaned appointments when patient deletion fails', async () => {
-        const [patient] = await db('patients')
+        const [patient] = await getTestDb()('patients')
         .insert({
           phone: '+5511999999999',
           name: 'John Doe',
         })
         .returning('*');
 
-      await db('appointments').insert({
+      await getTestDb()('appointments').insert({
         patient_id: patient.id,
         scheduled_at: new Date(),
       });
 
       // Delete patient (should cascade delete appointment)
-      await db('patients').where({ id: patient.id }).del();
+      await getTestDb()('patients').where({ id: patient.id }).del();
 
-      const appointments = await db('appointments').where({ patient_id: patient.id });
+      const appointments = await getTestDb()('appointments').where({ patient_id: patient.id });
       expect(appointments).toHaveLength(0);
     });
   });
