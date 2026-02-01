@@ -40,10 +40,8 @@ export interface ClassifiedIntent {
  */
 export const extractedEntitiesSchema = z.object({
   date: z.string().optional(),
-  time: z
-    .string()
-    .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
-    .optional(),
+  // Accept any string for time - normalization will convert coloquial formats
+  time: z.string().optional(),
   reason: z.string().optional(),
 });
 

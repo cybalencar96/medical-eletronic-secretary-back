@@ -45,32 +45,7 @@ export class MockLLMService implements IIntentClassifier {
 
     const lowerMessage = message.toLowerCase();
 
-    // Book intent patterns
-    if (
-      lowerMessage.includes('marcar') ||
-      lowerMessage.includes('agendar') ||
-      (lowerMessage.includes('quero') && lowerMessage.includes('consulta'))
-    ) {
-      logger.info(
-        {
-          correlationId,
-          intent: 'book',
-          isMockMode: true,
-        },
-        'Mock LLM classified as book intent'
-      );
-
-      return {
-        intent: 'book',
-        confidence: 0.95,
-        entities: {
-          date: getNextSaturday(),
-          time: '09:00',
-        },
-      };
-    }
-
-    // Reschedule intent patterns
+    // Reschedule intent patterns (check before book to avoid "remarcar" matching "marcar")
     if (
       lowerMessage.includes('remarcar') ||
       lowerMessage.includes('mudar') ||
@@ -95,7 +70,7 @@ export class MockLLMService implements IIntentClassifier {
       };
     }
 
-    // Cancel intent patterns
+    // Cancel intent patterns (check before book to avoid "desmarcar" matching "marcar")
     if (lowerMessage.includes('cancelar') || lowerMessage.includes('desmarcar')) {
       logger.info(
         {
@@ -111,6 +86,31 @@ export class MockLLMService implements IIntentClassifier {
         confidence: 0.92,
         entities: {
           reason: 'Mock cancellation reason',
+        },
+      };
+    }
+
+    // Book intent patterns
+    if (
+      lowerMessage.includes('marcar') ||
+      lowerMessage.includes('agendar') ||
+      (lowerMessage.includes('quero') && lowerMessage.includes('consulta'))
+    ) {
+      logger.info(
+        {
+          correlationId,
+          intent: 'book',
+          isMockMode: true,
+        },
+        'Mock LLM classified as book intent'
+      );
+
+      return {
+        intent: 'book',
+        confidence: 0.95,
+        entities: {
+          date: getNextSaturday(),
+          time: '09:00',
         },
       };
     }

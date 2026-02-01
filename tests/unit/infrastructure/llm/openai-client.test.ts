@@ -7,13 +7,15 @@ jest.mock('openai');
 
 describe('OpenAIClient', () => {
   let mockOpenAI: jest.Mocked<OpenAI>;
+  let mockCreate: jest.Mock;
   let client: OpenAIClient;
 
   beforeEach(() => {
+    mockCreate = jest.fn();
     mockOpenAI = {
       chat: {
         completions: {
-          create: jest.fn(),
+          create: mockCreate,
         },
       },
     } as any;
@@ -44,7 +46,7 @@ describe('OpenAIClient', () => {
         _request_id: 'req-123',
       };
 
-      mockOpenAI.chat.completions.create.mockResolvedValue(mockResponse as any);
+      mockCreate.mockResolvedValue(mockResponse as any);
 
       const result = await client.createChatCompletion<any>({
         messages: [
@@ -79,7 +81,7 @@ describe('OpenAIClient', () => {
         _request_id: 'req-123',
       };
 
-      mockOpenAI.chat.completions.create.mockResolvedValue(mockResponse as any);
+      mockCreate.mockResolvedValue(mockResponse as any);
 
       await expect(
         client.createChatCompletion({
@@ -109,7 +111,7 @@ describe('OpenAIClient', () => {
         _request_id: 'req-123',
       };
 
-      mockOpenAI.chat.completions.create.mockResolvedValue(mockResponse as any);
+      mockCreate.mockResolvedValue(mockResponse as any);
 
       await expect(
         client.createChatCompletion({
@@ -137,7 +139,7 @@ describe('OpenAIClient', () => {
       );
       (authError as any).request_id = 'req-123';
 
-      mockOpenAI.chat.completions.create.mockRejectedValue(authError);
+      mockCreate.mockRejectedValue(authError);
 
       await expect(
         client.createChatCompletion({
@@ -166,7 +168,7 @@ describe('OpenAIClient', () => {
       );
       (rateLimitError as any).request_id = 'req-123';
 
-      mockOpenAI.chat.completions.create.mockRejectedValue(rateLimitError);
+      mockCreate.mockRejectedValue(rateLimitError);
 
       await expect(
         client.createChatCompletion({
@@ -195,7 +197,7 @@ describe('OpenAIClient', () => {
       );
       (badRequestError as any).request_id = 'req-123';
 
-      mockOpenAI.chat.completions.create.mockRejectedValue(badRequestError);
+      mockCreate.mockRejectedValue(badRequestError);
 
       await expect(
         client.createChatCompletion({
@@ -223,7 +225,7 @@ describe('OpenAIClient', () => {
         {} as any,
       );
 
-      mockOpenAI.chat.completions.create.mockRejectedValue(serverError);
+      mockCreate.mockRejectedValue(serverError);
 
       await expect(
         client.createChatCompletion({
@@ -246,7 +248,7 @@ describe('OpenAIClient', () => {
         message: 'Request timeout',
       });
 
-      mockOpenAI.chat.completions.create.mockRejectedValue(timeoutError);
+      mockCreate.mockRejectedValue(timeoutError);
 
       await expect(
         client.createChatCompletion({
@@ -269,7 +271,7 @@ describe('OpenAIClient', () => {
         message: 'Connection error',
       });
 
-      mockOpenAI.chat.completions.create.mockRejectedValue(connectionError);
+      mockCreate.mockRejectedValue(connectionError);
 
       await expect(
         client.createChatCompletion({
@@ -290,7 +292,7 @@ describe('OpenAIClient', () => {
     it('should handle generic errors', async () => {
       const genericError = new Error('Generic error');
 
-      mockOpenAI.chat.completions.create.mockRejectedValue(genericError);
+      mockCreate.mockRejectedValue(genericError);
 
       await expect(
         client.createChatCompletion({

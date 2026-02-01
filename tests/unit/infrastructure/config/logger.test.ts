@@ -9,6 +9,11 @@
  * - Logger handles circular references gracefully
  */
 
+// Mock dotenv to prevent it from loading .env file during tests
+jest.mock('dotenv', () => ({
+  config: jest.fn(),
+}));
+
 describe('Logger Configuration', () => {
   let originalEnv: NodeJS.ProcessEnv;
 
@@ -18,6 +23,9 @@ describe('Logger Configuration', () => {
 
     // Clear require cache to force logger module reload
     jest.resetModules();
+
+    // Start with clean environment
+    process.env = {};
   });
 
   afterEach(() => {

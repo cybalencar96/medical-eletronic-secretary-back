@@ -235,16 +235,17 @@ describe('IntentClassifier', () => {
       await expect(classifier.classify('Test message')).rejects.toThrow(LLMError);
     });
 
-    it('should throw LLMError when OpenAI response has invalid time format', async () => {
+    it('should normalize invalid time format to undefined', async () => {
       mockClient.setMockResponse({
         intent: 'book',
         confidence: 0.95,
         entities: {
-          time: '25:00', // Invalid hour
+          time: '25:00', // Invalid hour - normalizeTime returns undefined
         },
       });
 
-      await expect(classifier.classify('Test message')).rejects.toThrow(LLMError);
+      const result = await classifier.classify('Test message');
+      expect(result.entities.time).toBeUndefined();
     });
 
     it('should rethrow LLMError from OpenAI client', async () => {

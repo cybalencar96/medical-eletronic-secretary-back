@@ -5,14 +5,19 @@
  * for each test case, allowing us to test different environment configurations.
  */
 
+// Mock dotenv to prevent it from loading .env file during tests
+jest.mock('dotenv', () => ({
+  config: jest.fn(),
+}));
+
 describe('Environment Configuration', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
     // Clear module cache to allow fresh imports
     jest.resetModules();
-    // Create a fresh copy of process.env
-    process.env = { ...originalEnv };
+    // Create a fresh copy of process.env without .env file values
+    process.env = {};
   });
 
   afterEach(() => {

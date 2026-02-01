@@ -71,6 +71,12 @@ export const normalizeTime = (timeString: string): string | undefined => {
   const timeMatch = trimmed.match(/^(\d{1,2}):(\d{2})$/);
   if (timeMatch) {
     const [, hour, minute] = timeMatch;
+    const hourNum = parseInt(hour, 10);
+    const minuteNum = parseInt(minute, 10);
+    // Validate hour (0-23) and minute (0-59)
+    if (hourNum > 23 || minuteNum > 59) {
+      return undefined;
+    }
     const paddedHour = hour.padStart(2, '0');
     return `${paddedHour}:${minute}`;
   }

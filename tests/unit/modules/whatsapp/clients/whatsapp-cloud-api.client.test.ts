@@ -1,22 +1,33 @@
-import { AxiosInstance } from 'axios';
+import { AxiosInstance, AxiosError, AxiosHeaders } from 'axios';
 import { WhatsAppCloudApiClient } from '../../../../../src/modules/whatsapp/clients/whatsapp-cloud-api.client';
 import { SendMessageRequest, SendMessageResponse } from '../../../../../src/modules/whatsapp/types/send-message.interface';
 import { WhatsAppApiError } from '../../../../../src/shared/errors/WhatsAppApiError';
 
-// Mock axios with isAxiosError implementation
-jest.mock('axios', () => {
-  const originalAxios = jest.requireActual('axios');
-  return {
-    ...originalAxios,
-    default: {
-      ...originalAxios.default,
-      isAxiosError: jest.fn((error: any) => error?.isAxiosError === true),
-      create: jest.fn(),
-    },
-    isAxiosError: jest.fn((error: any) => error?.isAxiosError === true),
-    create: jest.fn(),
-  };
-});
+/**
+ * Helper to create a real AxiosError that axios.isAxiosError() recognizes.
+ */
+function createAxiosError(
+  status: number | null,
+  data?: unknown,
+  code?: string
+): AxiosError {
+  const config = { headers: new AxiosHeaders() };
+  const response = status !== null ? {
+    status,
+    statusText: status >= 500 ? 'Server Error' : 'Client Error',
+    headers: {},
+    config,
+    data,
+  } : undefined;
+
+  return new AxiosError(
+    'Request failed',
+    code || (status !== null ? 'ERR_BAD_REQUEST' : 'ERR_NETWORK'),
+    config as any,
+    null,
+    response as any
+  );
+}
 
 // Mock whatsapp config
 jest.mock('../../../../../src/modules/whatsapp/config/whatsapp.config', () => ({
@@ -84,20 +95,14 @@ describe('WhatsAppCloudApiClient', () => {
 
   describe('sendMessage - retry logic', () => {
     it('should retry on HTTP 429 rate limit error', async () => {
-      const rateLimitError = {
-        response: {
-          status: 429,
-          data: {
-            error: {
-              message: 'Rate limit exceeded',
-              type: 'OAuthException',
-              code: 4,
-              fbtrace_id: 'trace123',
-            },
-          },
+      const rateLimitError = createAxiosError(429, {
+        error: {
+          message: 'Rate limit exceeded',
+          type: 'OAuthException',
+          code: 4,
+          fbtrace_id: 'trace123',
         },
-        isAxiosError: true,
-      };
+      });
 
       mockAxiosInstance.post
         .mockRejectedValueOnce(rateLimitError)
@@ -111,20 +116,14 @@ describe('WhatsAppCloudApiClient', () => {
     });
 
     it('should retry on HTTP 500 server error', async () => {
-      const serverError = {
-        response: {
-          status: 500,
-          data: {
-            error: {
-              message: 'Internal server error',
-              type: 'ApiException',
-              code: 1,
-              fbtrace_id: 'trace456',
-            },
-          },
+      const serverError = createAxiosError(500, {
+        error: {
+          message: 'Internal server error',
+          type: 'ApiException',
+          code: 1,
+          fbtrace_id: 'trace456',
         },
-        isAxiosError: true,
-      };
+      });
 
       mockAxiosInstance.post
         .mockRejectedValueOnce(serverError)
@@ -137,11 +136,7 @@ describe('WhatsAppCloudApiClient', () => {
     });
 
     it('should retry on network error', async () => {
-      const networkError = {
-        code: 'ECONNREFUSED',
-        message: 'Connection refused',
-        isAxiosError: true,
-      };
+      const networkError = createAxiosError(null, undefined, 'ECONNREFUSED');
 
       mockAxiosInstance.post
         .mockRejectedValueOnce(networkError)
@@ -154,10 +149,9 @@ describe('WhatsAppCloudApiClient', () => {
     });
 
     it('should use exponential backoff (1s, 2s, 4s)', async () => {
-      const rateLimitError = {
-        response: { status: 429, data: { error: { message: 'Rate limit', code: 4, type: 'OAuthException', fbtrace_id: 'x' } } },
-        isAxiosError: true,
-      };
+      const rateLimitError = createAxiosError(429, {
+        error: { message: 'Rate limit', code: 4, type: 'OAuthException', fbtrace_id: 'x' },
+      });
 
       mockAxiosInstance.post
         .mockRejectedValueOnce(rateLimitError)
@@ -178,10 +172,9 @@ describe('WhatsAppCloudApiClient', () => {
     });
 
     it('should stop retrying after max attempts', async () => {
-      const rateLimitError = {
-        response: { status: 429, data: { error: { message: 'Rate limit', code: 4, type: 'OAuthException', fbtrace_id: 'trace' } } },
-        isAxiosError: true,
-      };
+      const rateLimitError = createAxiosError(429, {
+        error: { message: 'Rate limit', code: 4, type: 'OAuthException', fbtrace_id: 'trace' },
+      });
 
       mockAxiosInstance.post.mockRejectedValue(rateLimitError);
 
@@ -193,20 +186,14 @@ describe('WhatsAppCloudApiClient', () => {
 
   describe('sendMessage - non-retryable errors', () => {
     it('should NOT retry on HTTP 400 bad request', async () => {
-      const badRequestError = {
-        response: {
-          status: 400,
-          data: {
-            error: {
-              message: 'Invalid phone number',
-              type: 'ApiException',
-              code: 100,
-              fbtrace_id: 'trace789',
-            },
-          },
+      const badRequestError = createAxiosError(400, {
+        error: {
+          message: 'Invalid phone number',
+          type: 'ApiException',
+          code: 100,
+          fbtrace_id: 'trace789',
         },
-        isAxiosError: true,
-      };
+      });
 
       mockAxiosInstance.post.mockRejectedValue(badRequestError);
 
@@ -216,20 +203,14 @@ describe('WhatsAppCloudApiClient', () => {
     });
 
     it('should NOT retry on HTTP 401 unauthorized', async () => {
-      const unauthorizedError = {
-        response: {
-          status: 401,
-          data: {
-            error: {
-              message: 'Invalid access token',
-              type: 'OAuthException',
-              code: 190,
-              fbtrace_id: 'trace999',
-            },
-          },
+      const unauthorizedError = createAxiosError(401, {
+        error: {
+          message: 'Invalid access token',
+          type: 'OAuthException',
+          code: 190,
+          fbtrace_id: 'trace999',
         },
-        isAxiosError: true,
-      };
+      });
 
       mockAxiosInstance.post.mockRejectedValue(unauthorizedError);
 
@@ -239,20 +220,14 @@ describe('WhatsAppCloudApiClient', () => {
     });
 
     it('should NOT retry on HTTP 403 forbidden', async () => {
-      const forbiddenError = {
-        response: {
-          status: 403,
-          data: {
-            error: {
-              message: 'Forbidden',
-              type: 'OAuthException',
-              code: 10,
-              fbtrace_id: 'trace111',
-            },
-          },
+      const forbiddenError = createAxiosError(403, {
+        error: {
+          message: 'Forbidden',
+          type: 'OAuthException',
+          code: 10,
+          fbtrace_id: 'trace111',
         },
-        isAxiosError: true,
-      };
+      });
 
       mockAxiosInstance.post.mockRejectedValue(forbiddenError);
 
@@ -263,23 +238,15 @@ describe('WhatsAppCloudApiClient', () => {
   });
 
   describe('sendMessage - error handling', () => {
-    // Note: The following 4 tests are skipped due to Jest/axios.isAxiosError() mock limitations.
-    // Error handling is fully covered by integration tests in tests/integration/modules/whatsapp/message-sender.service.test.ts
-    it.skip('should throw WhatsAppApiError with details from API error response', async () => {
-      const apiError = {
-        response: {
-          status: 400,
-          data: {
-            error: {
-              message: 'Invalid recipient phone number',
-              type: 'ApiException',
-              code: 100,
-              fbtrace_id: 'ABC123XYZ',
-            },
-          },
+    it('should throw WhatsAppApiError with details from API error response', async () => {
+      const apiError = createAxiosError(400, {
+        error: {
+          message: 'Invalid recipient phone number',
+          type: 'ApiException',
+          code: 100,
+          fbtrace_id: 'ABC123XYZ',
         },
-        isAxiosError: true,
-      };
+      });
 
       mockAxiosInstance.post.mockRejectedValue(apiError);
 
@@ -297,12 +264,8 @@ describe('WhatsAppCloudApiClient', () => {
       }
     });
 
-    it.skip('should throw WhatsAppApiError on network timeout', async () => {
-      const timeoutError = {
-        code: 'ETIMEDOUT',
-        message: 'timeout of 30000ms exceeded',
-        isAxiosError: true,
-      };
+    it('should throw WhatsAppApiError on network timeout', async () => {
+      const timeoutError = createAxiosError(null, undefined, 'ETIMEDOUT');
 
       mockAxiosInstance.post.mockRejectedValue(timeoutError);
 
@@ -310,12 +273,8 @@ describe('WhatsAppCloudApiClient', () => {
       await expect(client.sendMessage(validRequest)).rejects.toThrow('Request timeout');
     });
 
-    it.skip('should throw WhatsAppApiError on network error', async () => {
-      const networkError = {
-        code: 'ECONNREFUSED',
-        message: 'connect ECONNREFUSED',
-        isAxiosError: true,
-      };
+    it('should throw WhatsAppApiError on network error', async () => {
+      const networkError = createAxiosError(null, undefined, 'ECONNREFUSED');
 
       mockAxiosInstance.post.mockRejectedValue(networkError);
 
@@ -323,14 +282,8 @@ describe('WhatsAppCloudApiClient', () => {
       await expect(client.sendMessage(validRequest)).rejects.toThrow('Network error');
     });
 
-    it.skip('should handle error response without structured error data', async () => {
-      const genericError = {
-        response: {
-          status: 500,
-          data: 'Internal Server Error',
-        },
-        isAxiosError: true,
-      };
+    it('should handle error response without structured error data', async () => {
+      const genericError = createAxiosError(500, 'Internal Server Error');
 
       mockAxiosInstance.post.mockRejectedValue(genericError);
 
@@ -350,10 +303,7 @@ describe('WhatsAppCloudApiClient', () => {
 
   describe('edge cases', () => {
     it('should handle HTTP 502 Bad Gateway with retry', async () => {
-      const badGatewayError = {
-        response: { status: 502, data: 'Bad Gateway' },
-        isAxiosError: true,
-      };
+      const badGatewayError = createAxiosError(502, 'Bad Gateway');
 
       mockAxiosInstance.post
         .mockRejectedValueOnce(badGatewayError)
@@ -366,10 +316,7 @@ describe('WhatsAppCloudApiClient', () => {
     });
 
     it('should handle HTTP 503 Service Unavailable with retry', async () => {
-      const serviceUnavailableError = {
-        response: { status: 503, data: 'Service Unavailable' },
-        isAxiosError: true,
-      };
+      const serviceUnavailableError = createAxiosError(503, 'Service Unavailable');
 
       mockAxiosInstance.post
         .mockRejectedValueOnce(serviceUnavailableError)
@@ -382,10 +329,7 @@ describe('WhatsAppCloudApiClient', () => {
     });
 
     it('should handle HTTP 504 Gateway Timeout with retry', async () => {
-      const gatewayTimeoutError = {
-        response: { status: 504, data: 'Gateway Timeout' },
-        isAxiosError: true,
-      };
+      const gatewayTimeoutError = createAxiosError(504, 'Gateway Timeout');
 
       mockAxiosInstance.post
         .mockRejectedValueOnce(gatewayTimeoutError)
