@@ -128,9 +128,7 @@ export async function checkRedis(): Promise<boolean> {
  * });
  * ```
  */
-export async function waitForServices(
-  options?: Partial<ServiceHealthOptions>
-): Promise<void> {
+export async function waitForServices(options?: Partial<ServiceHealthOptions>): Promise<void> {
   const config: ServiceHealthOptions = {
     ...DEFAULT_OPTIONS,
     ...options,
@@ -151,15 +149,10 @@ export async function waitForServices(
       );
     }
 
-    console.warn(
-      `Checking service health (attempt ${attempt}/${config.maxRetries})...`
-    );
+    console.warn(`Checking service health (attempt ${attempt}/${config.maxRetries})...`);
 
     // Check both services in parallel
-    const [postgresAvailable, redisAvailable] = await Promise.all([
-      checkPostgres(),
-      checkRedis(),
-    ]);
+    const [postgresAvailable, redisAvailable] = await Promise.all([checkPostgres(), checkRedis()]);
 
     // If both services are available, we're done
     if (postgresAvailable && redisAvailable) {
@@ -190,10 +183,7 @@ export async function waitForServices(
   }
 
   // If we've exhausted all retries, throw an error
-  const [postgresAvailable, redisAvailable] = await Promise.all([
-    checkPostgres(),
-    checkRedis(),
-  ]);
+  const [postgresAvailable, redisAvailable] = await Promise.all([checkPostgres(), checkRedis()]);
 
   const unavailableServices: string[] = [];
   if (!postgresAvailable) {

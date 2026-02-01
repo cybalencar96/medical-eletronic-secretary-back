@@ -223,9 +223,7 @@ describe('service-health', () => {
       await jest.runAllTimersAsync();
       await promise;
 
-      expect(console.warn).toHaveBeenCalledWith(
-        'Checking service health (attempt 1/10)...'
-      );
+      expect(console.warn).toHaveBeenCalledWith('Checking service health (attempt 1/10)...');
       expect(console.warn).toHaveBeenCalledWith('All services are healthy');
     });
 
@@ -246,15 +244,11 @@ describe('service-health', () => {
       await jest.runAllTimersAsync();
       await promise;
 
-      expect(console.warn).toHaveBeenCalledWith(
-        'Checking service health (attempt 1/10)...'
-      );
+      expect(console.warn).toHaveBeenCalledWith('Checking service health (attempt 1/10)...');
       expect(console.warn).toHaveBeenCalledWith(
         'Services unavailable: PostgreSQL, Redis. Retrying in 100ms...'
       );
-      expect(console.warn).toHaveBeenCalledWith(
-        'Checking service health (attempt 2/10)...'
-      );
+      expect(console.warn).toHaveBeenCalledWith('Checking service health (attempt 2/10)...');
       expect(console.warn).toHaveBeenCalledWith('All services are healthy');
     });
 
@@ -297,12 +291,8 @@ describe('service-health', () => {
           'Ensure Docker services are running with: docker compose --profile test up -d'
       );
 
-      expect(console.warn).toHaveBeenCalledWith(
-        'Checking service health (attempt 1/2)...'
-      );
-      expect(console.warn).toHaveBeenCalledWith(
-        'Checking service health (attempt 2/2)...'
-      );
+      expect(console.warn).toHaveBeenCalledWith('Checking service health (attempt 1/2)...');
+      expect(console.warn).toHaveBeenCalledWith('Checking service health (attempt 2/2)...');
     });
 
     it('should throw error after max retries with PostgreSQL unavailable', async () => {
@@ -356,15 +346,9 @@ describe('service-health', () => {
         'PostgreSQL, Redis unavailable after 10000ms timeout (3 retries)'
       );
 
-      expect(console.warn).toHaveBeenCalledWith(
-        'Checking service health (attempt 1/3)...'
-      );
-      expect(console.warn).toHaveBeenCalledWith(
-        'Checking service health (attempt 2/3)...'
-      );
-      expect(console.warn).toHaveBeenCalledWith(
-        'Checking service health (attempt 3/3)...'
-      );
+      expect(console.warn).toHaveBeenCalledWith('Checking service health (attempt 1/3)...');
+      expect(console.warn).toHaveBeenCalledWith('Checking service health (attempt 2/3)...');
+      expect(console.warn).toHaveBeenCalledWith('Checking service health (attempt 3/3)...');
     });
 
     it('should use default options when none provided', async () => {
@@ -379,9 +363,7 @@ describe('service-health', () => {
       await jest.runAllTimersAsync();
       await promise;
 
-      expect(console.warn).toHaveBeenCalledWith(
-        'Checking service health (attempt 1/10)...'
-      );
+      expect(console.warn).toHaveBeenCalledWith('Checking service health (attempt 1/10)...');
     });
 
     it('should handle zero retries configuration', async () => {
@@ -392,9 +374,7 @@ describe('service-health', () => {
 
       await expect(
         waitForServices({ maxRetries: 0, retryDelayMs: 100, timeoutMs: 5000 })
-      ).rejects.toThrow(
-        'PostgreSQL, Redis unavailable after 5000ms timeout (0 retries)'
-      );
+      ).rejects.toThrow('PostgreSQL, Redis unavailable after 5000ms timeout (0 retries)');
     });
 
     it('should throw timeout error when timeout is exceeded before max retries', async () => {
@@ -432,9 +412,7 @@ describe('service-health', () => {
       await promise;
 
       // Verify console.warn was called for retries showing exponential backoff
-      expect(console.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Retrying in 1000ms...')
-      );
+      expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('Retrying in 1000ms...'));
     });
   });
 });

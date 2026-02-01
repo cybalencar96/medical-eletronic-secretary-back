@@ -3,7 +3,8 @@ import { app } from '../../../src/app';
 import { logger } from '../../../src/infrastructure/config/logger';
 import { Job, Queue, Worker } from 'bullmq';
 import { redisConnection } from '../../../src/infrastructure/queue/connection';
-import { QUEUE_NAMES, WhatsAppMessageJob } from '../../../src/infrastructure/queue/types';
+import { WhatsAppMessageJob } from '../../../src/infrastructure/queue/types';
+import Redis from 'ioredis';
 
 /**
  * Integration tests for correlation ID propagation.
@@ -20,9 +21,13 @@ describe('Correlation ID Propagation', () => {
   let testQueue: Queue;
   let testWorker: Worker;
   let logSpy: jest.SpyInstance;
+  let redisClient: Redis;
   const processedJobs: Job[] = [];
 
   beforeAll(async () => {
+    // Create a Redis client for cleanup (cast to avoid TypeScript union type error)
+    redisClient = new Redis(redisConnection as any);
+
     // Create a test queue for correlation ID testing
     testQueue = new Queue('test-correlation-queue', {
       connection: redisConnection,
@@ -45,7 +50,7 @@ describe('Correlation ID Propagation', () => {
     await testQueue.obliterate({ force: true });
     await testQueue.close();
     await testWorker.close();
-    await redisConnection.quit();
+    await redisClient.quit();
   });
 
   beforeEach(() => {
