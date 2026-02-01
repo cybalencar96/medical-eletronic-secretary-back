@@ -1,4 +1,23 @@
 import request from 'supertest';
+import { Router } from 'express';
+
+// Mock queue infrastructure to prevent open handles
+jest.mock('../../src/infrastructure/queue/queues', () => ({
+  queues: {
+    whatsappMessages: { add: jest.fn(), close: jest.fn() },
+    intentClassification: { add: jest.fn(), close: jest.fn() },
+    notifications: { add: jest.fn(), close: jest.fn() },
+    escalations: { add: jest.fn(), close: jest.fn() },
+  },
+  closeQueues: jest.fn(),
+  initializeQueues: jest.fn(),
+}));
+
+// Mock bull board to prevent it from trying to wrap mocked queues
+jest.mock('../../src/infrastructure/queue/board', () => ({
+  bullBoardRouter: Router(),
+}));
+
 import { app } from '../../src/app';
 
 describe('Express Application', () => {
