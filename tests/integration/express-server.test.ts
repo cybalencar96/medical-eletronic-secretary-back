@@ -110,9 +110,9 @@ describe('Express Server Integration Tests', () => {
 
       expect(response.status).toBe(400);
       expect(response.body).toMatchObject({
-        status: 'error',
-        statusCode: 400,
-        message: 'Validation failed',
+        success: false,
+        data: null,
+        error: 'Validation failed',
       });
     });
 
@@ -131,9 +131,9 @@ describe('Express Server Integration Tests', () => {
 
       expect(response.status).toBe(500);
       expect(response.body).toMatchObject({
-        status: 'error',
-        statusCode: 500,
-        message: 'Unexpected database error',
+        success: false,
+        data: null,
+        error: 'Unexpected database error',
       });
     });
 
@@ -152,6 +152,8 @@ describe('Express Server Integration Tests', () => {
 
       // In test environment, stack trace should be included
       expect(response.body).toHaveProperty('stack');
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Test error');
     });
 
     it('should handle 404 Not Found errors', async () => {
@@ -168,7 +170,8 @@ describe('Express Server Integration Tests', () => {
       const response = await request(testApp).get('/test-error-404');
 
       expect(response.status).toBe(404);
-      expect(response.body.message).toBe('Resource not found');
+      expect(response.body.error).toBe('Resource not found');
+      expect(response.body.success).toBe(false);
     });
 
     it('should handle 401 Unauthorized errors', async () => {
@@ -185,7 +188,8 @@ describe('Express Server Integration Tests', () => {
       const response = await request(testApp).get('/test-error-401');
 
       expect(response.status).toBe(401);
-      expect(response.body.message).toBe('Unauthorized access');
+      expect(response.body.error).toBe('Unauthorized access');
+      expect(response.body.success).toBe(false);
     });
   });
 

@@ -52,17 +52,23 @@ export interface TestRedisConnection {
  * ```
  */
 export function createTestRedisConnection(prefix = 'test:'): TestRedisConnection {
+  // Note: BullMQ doesn't support IORedis keyPrefix, so we don't use it here.
+  // For BullMQ queue isolation, use the queue's prefix option or unique queue names.
   const client = new Redis({
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
+    password: process.env.REDIS_PASSWORD || undefined,
     maxRetriesPerRequest: null, // Compatible with BullMQ
     retryStrategy: (times: number) => {
       // Exponential backoff with max delay of 3000ms
       return Math.min(times * 50, 3000);
     },
     lazyConnect: true, // Don't connect automatically
-    keyPrefix: prefix, // All keys will be prefixed automatically
+    // Note: keyPrefix is NOT used because BullMQ doesn't support it
   });
+
+  // Store prefix for cleanup operations
+  const keyPrefix = prefix;
 
   return {
     client,
@@ -80,9 +86,8 @@ export function createTestRedisConnection(prefix = 'test:'): TestRedisConnection
         }
 
         // Get all keys matching the prefix pattern
-        // Note: IORedis automatically adds the keyPrefix, so we search for '*'
         const stream = client.scanStream({
-          match: '*',
+          match: `${keyPrefix}*`,
           count: 100,
         });
 
@@ -97,11 +102,7 @@ export function createTestRedisConnection(prefix = 'test:'): TestRedisConnection
 
         // Delete keys in batches if any were found
         if (keysToDelete.length > 0) {
-          // Remove the prefix before deleting since IORedis will add it back
-          const keysWithoutPrefix = keysToDelete.map((key) =>
-            key.startsWith(prefix) ? key.substring(prefix.length) : key
-          );
-          await client.del(...keysWithoutPrefix);
+          await client.del(...keysToDelete);
         }
       } catch (_error) {
         // Ignore cleanup errors to prevent test failures

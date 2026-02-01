@@ -118,7 +118,10 @@ describe('Docker Services Integration', () => {
     it('should connect to PostgreSQL successfully', async () => {
       if (!servicesAvailable) return;
 
-      await expect(pgClient.connect()).resolves.not.toThrow();
+      // pgClient is already connected in beforeAll, so we verify it's working
+      // by executing a simple query
+      const result = await pgClient.query('SELECT 1');
+      expect(result.rows).toHaveLength(1);
     });
 
     it('should execute a simple query', async () => {

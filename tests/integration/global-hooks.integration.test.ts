@@ -21,6 +21,7 @@ describe('Global Hooks Integration Tests', () => {
     redis = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
       port: parseInt(process.env.REDIS_PORT || '6379', 10),
+      password: process.env.REDIS_PASSWORD || 'redis',
       lazyConnect: true,
     });
   });
@@ -108,6 +109,8 @@ describe('Global Hooks Integration Tests', () => {
       const tempRedis = new Redis({
         host: process.env.REDIS_HOST || 'localhost',
         port: parseInt(process.env.REDIS_PORT || '6379', 10),
+        password: process.env.REDIS_PASSWORD || 'redis',
+        lazyConnect: true,
       });
 
       await tempRedis.connect();

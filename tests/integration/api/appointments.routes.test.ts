@@ -1,12 +1,15 @@
 /**
  * Integration tests for appointments API routes
+ *
+ * Note: These tests use real database inserts (not transactions) because
+ * Express routes use the global db connection which can't see transaction data.
  */
 
 import request from 'supertest';
 import { app } from '../../../src/app';
 import jwt from 'jsonwebtoken';
+import db from '../../../src/infrastructure/database/connection';
 import { AppointmentStatus } from '../../../src/modules/appointments/types/appointment.types';
-import { createTransactionContext, TransactionContext, getTestDb } from '../../utils/transaction-context';
 
 // Mock JWT secret
 jest.mock('../../../src/infrastructure/config/env', () => ({
@@ -21,7 +24,6 @@ describe('Appointments API Integration Tests', () => {
   let authToken: string;
   let testAppointmentId: string;
   let testPatientId: string;
-  let txContext: TransactionContext;
 
   beforeAll(() => {
     // Generate valid JWT token for tests
@@ -29,11 +31,15 @@ describe('Appointments API Integration Tests', () => {
   });
 
   beforeEach(async () => {
-    txContext = createTransactionContext();
-    await txContext.setup();
+    // Clean up before each test to ensure isolation
+    await db('audit_logs').del();
+    await db('notifications_sent').del();
+    await db('appointments').del();
+    await db('escalations').del();
+    await db('patients').del();
 
-    // Create test patient
-    const [patient] = await getTestDb()('patients')
+    // Create test patient using global db (visible to routes)
+    const [patient] = await db('patients')
       .insert({
         phone: '+5511999999999',
         cpf: '12345678901',
@@ -45,7 +51,7 @@ describe('Appointments API Integration Tests', () => {
     testPatientId = patient.id;
 
     // Create test appointment
-    const [appointment] = await getTestDb()('appointments')
+    const [appointment] = await db('appointments')
       .insert({
         patient_id: testPatientId,
         scheduled_at: new Date('2024-12-28T09:00:00Z'),
@@ -57,7 +63,12 @@ describe('Appointments API Integration Tests', () => {
   });
 
   afterEach(async () => {
-    await txContext.teardown();
+    // Clean up after each test
+    await db('audit_logs').del();
+    await db('notifications_sent').del();
+    await db('appointments').del();
+    await db('escalations').del();
+    await db('patients').del();
   });
 
   describe('GET /api/appointments', () => {
@@ -176,7 +187,7 @@ describe('Appointments API Integration Tests', () => {
         .send({ status: AppointmentStatus.CONFIRMED })
         .expect(200);
 
-      const auditLogs = await getTestDb()('audit_logs')
+      const auditLogs = await db('audit_logs')
         .where({ patient_id: testPatientId })
         .where({ action: 'status_update' });
 

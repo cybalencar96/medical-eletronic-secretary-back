@@ -51,7 +51,11 @@ const createApp = () => {
     })
   );
 
-  // Body parsing middleware
+  // WhatsApp webhook routes - MUST be before body parsing middleware
+  // The webhook router has its own JSON parser with captureRawBody for signature validation
+  app.use('/webhook', webhookRouter);
+
+  // Body parsing middleware (for all other routes)
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
@@ -74,9 +78,6 @@ const createApp = () => {
       version: '1.0.0',
     });
   });
-
-  // WhatsApp webhook routes
-  app.use('/webhook', webhookRouter);
 
   // Authentication routes (no JWT middleware)
   app.use('/api/auth', authRouter);

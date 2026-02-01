@@ -1,10 +1,9 @@
-import { Worker, Job, Queue } from 'bullmq';
+import { Worker, Job, Queue, ConnectionOptions } from 'bullmq';
 import {
   WhatsAppMessageJob,
   IntentClassificationJob,
   NotificationJob,
 } from '../../../src/infrastructure/queue/types';
-import { createTestRedisConnection, TestRedisConnection } from '../../utils/redis-connection';
 
 /**
  * Integration tests for queue infrastructure.
@@ -16,28 +15,35 @@ import { createTestRedisConnection, TestRedisConnection } from '../../utils/redi
  */
 describe('Queue Infrastructure Integration', () => {
   let testWorkers: Worker[] = [];
-  let testRedis: TestRedisConnection;
+  let connectionOptions: ConnectionOptions;
   let testQueues: {
     whatsappMessages: Queue<WhatsAppMessageJob>;
     intentClassification: Queue<IntentClassificationJob>;
     notifications: Queue<NotificationJob>;
   };
 
-  beforeEach(async () => {
-    // Create isolated Redis connection for this test
-    testRedis = createTestRedisConnection('queue-test:');
-    await testRedis.client.connect();
+  // Generate unique prefix per test run to avoid conflicts
+  const testPrefix = `test-${Date.now()}`;
 
-    // Create isolated queue instances with the test Redis connection
+  beforeEach(async () => {
+    // Create connection options for BullMQ (using ConnectionOptions, not IORedis client)
+    connectionOptions = {
+      host: process.env.REDIS_HOST || 'localhost',
+      port: parseInt(process.env.REDIS_PORT || '6379', 10),
+      password: process.env.REDIS_PASSWORD || undefined,
+      maxRetriesPerRequest: null,
+    };
+
+    // Create isolated queue instances with unique names per test
     testQueues = {
-      whatsappMessages: new Queue<WhatsAppMessageJob>('whatsapp-messages', {
-        connection: testRedis.client,
+      whatsappMessages: new Queue<WhatsAppMessageJob>(`${testPrefix}-whatsapp-messages`, {
+        connection: connectionOptions,
       }),
-      intentClassification: new Queue<IntentClassificationJob>('intent-classification', {
-        connection: testRedis.client,
+      intentClassification: new Queue<IntentClassificationJob>(`${testPrefix}-intent-classification`, {
+        connection: connectionOptions,
       }),
-      notifications: new Queue<NotificationJob>('notifications', {
-        connection: testRedis.client,
+      notifications: new Queue<NotificationJob>(`${testPrefix}-notifications`, {
+        connection: connectionOptions,
       }),
     };
   });
@@ -51,11 +57,11 @@ describe('Queue Infrastructure Integration', () => {
       testWorkers = [];
     }
 
-    // Clean up queues
+    // Clean up queues (obliterate removes all data)
     await Promise.all([
-      testQueues.whatsappMessages.drain(),
-      testQueues.intentClassification.drain(),
-      testQueues.notifications.drain(),
+      testQueues.whatsappMessages.obliterate({ force: true }),
+      testQueues.intentClassification.obliterate({ force: true }),
+      testQueues.notifications.obliterate({ force: true }),
     ]);
 
     await Promise.all([
@@ -63,10 +69,6 @@ describe('Queue Infrastructure Integration', () => {
       testQueues.intentClassification.close(),
       testQueues.notifications.close(),
     ]);
-
-    // Clean up Redis connection
-    await testRedis.cleanup();
-    await testRedis.close();
   });
 
   describe('End-to-end job processing', () => {
@@ -77,8 +79,8 @@ describe('Queue Infrastructure Integration', () => {
         processedJobs.push(job);
       };
 
-      const worker = new Worker<WhatsAppMessageJob>('whatsapp-messages', processor, {
-        connection: testRedis.client,
+      const worker = new Worker<WhatsAppMessageJob>(testQueues.whatsappMessages.name, processor, {
+        connection: connectionOptions,
         concurrency: 5,
         autorun: true,
       });
@@ -117,8 +119,8 @@ describe('Queue Infrastructure Integration', () => {
         processingTimes.push(Date.now() - start);
       };
 
-      const worker = new Worker<WhatsAppMessageJob>('whatsapp-messages', processor, {
-        connection: testRedis.client,
+      const worker = new Worker<WhatsAppMessageJob>(testQueues.whatsappMessages.name, processor, {
+        connection: connectionOptions,
         concurrency: 5,
         autorun: true,
       });
@@ -158,8 +160,8 @@ describe('Queue Infrastructure Integration', () => {
         // Succeed on 3rd attempt
       };
 
-      const worker = new Worker<WhatsAppMessageJob>('whatsapp-messages', failingProcessor, {
-        connection: testRedis.client,
+      const worker = new Worker<WhatsAppMessageJob>(testQueues.whatsappMessages.name, failingProcessor, {
+        connection: connectionOptions,
         concurrency: 5,
         autorun: true,
       });
@@ -177,21 +179,26 @@ describe('Queue Infrastructure Integration', () => {
 
       await testQueues.whatsappMessages.add('process-message', jobData, {
         jobId: jobData.messageId,
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 1000,
+        },
       });
 
-      // Wait for retries to complete
-      await new Promise((resolve) => setTimeout(resolve, 8000));
+      // Wait for retries to complete (1s + 2s + some buffer)
+      await new Promise((resolve) => setTimeout(resolve, 5000));
 
       expect(attemptCount).toBe(3);
-    }, 15000);
+    }, 10000);
 
     it('should move to failed queue after max attempts', async () => {
       const failingProcessor = async (_job: Job<WhatsAppMessageJob>) => {
         throw new Error('Always fails');
       };
 
-      const worker = new Worker<WhatsAppMessageJob>('whatsapp-messages', failingProcessor, {
-        connection: testRedis.client,
+      const worker = new Worker<WhatsAppMessageJob>(testQueues.whatsappMessages.name, failingProcessor, {
+        connection: connectionOptions,
         concurrency: 5,
         autorun: true,
       });
@@ -209,17 +216,22 @@ describe('Queue Infrastructure Integration', () => {
 
       const job = await testQueues.whatsappMessages.add('process-message', jobData, {
         jobId: jobData.messageId,
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 500,
+        },
       });
 
-      // Wait for all retry attempts
-      await new Promise((resolve) => setTimeout(resolve, 10000));
+      // Wait for all retry attempts (500ms + 1s + 2s + buffer)
+      await new Promise((resolve) => setTimeout(resolve, 5000));
 
       const failedJobs = await testQueues.whatsappMessages.getFailed();
       const failedJob = failedJobs.find((j) => j.id === job.id);
 
       expect(failedJob).toBeDefined();
       expect(failedJob?.attemptsMade).toBe(3);
-    }, 15000);
+    }, 10000);
   });
 
   describe('Graceful shutdown', () => {
@@ -232,8 +244,8 @@ describe('Queue Infrastructure Integration', () => {
         completedJobs.push(job.data.appointmentId);
       };
 
-      const worker = new Worker<NotificationJob>('notifications', slowProcessor, {
-        connection: testRedis.client,
+      const worker = new Worker<NotificationJob>(testQueues.notifications.name, slowProcessor, {
+        connection: connectionOptions,
         concurrency: 1,
         autorun: true,
       });
@@ -279,20 +291,20 @@ describe('Queue Infrastructure Integration', () => {
       };
 
       const whatsappWorker = new Worker<WhatsAppMessageJob>(
-        'whatsapp-messages',
+        testQueues.whatsappMessages.name,
         whatsappProcessor,
         {
-          connection: testRedis.client,
+          connection: connectionOptions,
           concurrency: 5,
           autorun: true,
         }
       );
 
       const intentWorker = new Worker<IntentClassificationJob>(
-        'intent-classification',
+        testQueues.intentClassification.name,
         intentProcessor,
         {
-          connection: testRedis.client,
+          connection: connectionOptions,
           concurrency: 3,
           autorun: true,
         }
@@ -336,8 +348,8 @@ describe('Queue Infrastructure Integration', () => {
         processedJobs.push(job.data.messageId);
       };
 
-      const worker = new Worker<WhatsAppMessageJob>('whatsapp-messages', processor, {
-        connection: testRedis.client,
+      const worker = new Worker<WhatsAppMessageJob>(testQueues.whatsappMessages.name, processor, {
+        connection: connectionOptions,
         concurrency: 5,
         autorun: true,
       });
