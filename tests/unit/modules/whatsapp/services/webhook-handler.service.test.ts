@@ -6,6 +6,15 @@ import { AppError } from '../../../../../src/shared/errors/AppError';
 
 // Mock dependencies
 jest.mock('../../../../../src/infrastructure/config/logger');
+jest.mock('../../../../../src/infrastructure/queue/queues', () => ({
+  queues: {
+    whatsappMessages: { add: jest.fn(), close: jest.fn() },
+    intentClassification: { add: jest.fn(), close: jest.fn() },
+    notifications: { add: jest.fn(), close: jest.fn() },
+    escalations: { add: jest.fn(), close: jest.fn() },
+  },
+  closeQueues: jest.fn(),
+}));
 jest.mock('../../../../../src/infrastructure/queue/queue.service');
 
 describe('WebhookHandlerService', () => {
