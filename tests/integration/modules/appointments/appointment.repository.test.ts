@@ -4,52 +4,23 @@
  * Tests data access layer with real PostgreSQL database
  */
 
-import { Knex } from 'knex';
 import { AppointmentRepository } from '../../../../src/modules/appointments/appointment.repository';
 import { AppointmentStatus } from '../../../../src/modules/appointments/types/appointment.types';
 import db from '../../../../src/infrastructure/database/connection';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
-const execAsync = promisify(exec);
+import { createTransactionContext, TransactionContext } from '../../../utils/transaction-context';
 
 describe('AppointmentRepository Integration Tests', () => {
   let repository: AppointmentRepository;
-  let testDb: Knex;
+  let txContext: TransactionContext;
   let testPatientId: string;
 
-  beforeAll(async () => {
-    // Check if Docker services are running
-    try {
-      await execAsync('docker ps');
-    } catch (error) {
-      throw new Error(
-        'Docker services not running. Please start services with: docker-compose up -d',
-      );
-    }
-
-    testDb = db;
-
-    // Run migrations
-    try {
-      await testDb.migrate.latest();
-    } catch (error) {
-      console.error('Migration error:', error);
-      throw error;
-    }
-
-    repository = new AppointmentRepository(testDb);
-  });
-
-  afterAll(async () => {
-    // Rollback migrations
-    await testDb.migrate.rollback();
-    await testDb.destroy();
-  });
-
   beforeEach(async () => {
+    txContext = createTransactionContext();
+    await txContext.setup();
+    repository = new AppointmentRepository(db);
+
     // Create test patient for foreign key constraint
-    const [patient] = await testDb('patients')
+    const [patient] = await db('patients')
       .insert({
         name: 'Test Patient',
         cpf: '12345678900',
@@ -62,10 +33,7 @@ describe('AppointmentRepository Integration Tests', () => {
   });
 
   afterEach(async () => {
-    // Clean up test data
-    await testDb('appointments').del();
-    await testDb('patients').del();
-    await testDb('audit_logs').del();
+    await txContext.teardown();
   });
 
   describe('create', () => {
@@ -92,7 +60,7 @@ describe('AppointmentRepository Integration Tests', () => {
         scheduledAt,
       });
 
-      const dbRow = await testDb('appointments').where({ id: appointment.id }).first();
+      const dbRow = await db('appointments').where({ id: appointment.id }).first();
 
       expect(dbRow).toBeDefined();
       expect(dbRow.patient_id).toBe(testPatientId);
@@ -346,7 +314,7 @@ describe('AppointmentRepository Integration Tests', () => {
 
       await repository.delete(created.id);
 
-      const dbRow = await testDb('appointments').where({ id: created.id }).first();
+      const dbRow = await db('appointments').where({ id: created.id }).first();
       expect(dbRow).toBeDefined();
     });
   });

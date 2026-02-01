@@ -6,6 +6,7 @@ import request from 'supertest';
 import { app } from '../../../src/app';
 import jwt from 'jsonwebtoken';
 import db from '../../../src/infrastructure/database/connection';
+import { createTransactionContext, TransactionContext } from '../../utils/transaction-context';
 
 // Mock JWT secret
 jest.mock('../../../src/infrastructure/config/env', () => ({
@@ -20,6 +21,7 @@ describe('Escalations API Integration Tests', () => {
   let authToken: string;
   let testEscalationId: string;
   let testPatientId: string;
+  let txContext: TransactionContext;
 
   beforeAll(() => {
     // Generate valid JWT token for tests
@@ -27,6 +29,9 @@ describe('Escalations API Integration Tests', () => {
   });
 
   beforeEach(async () => {
+    txContext = createTransactionContext();
+    await txContext.setup();
+
     // Create test patient
     const [patient] = await db('patients')
       .insert({
@@ -52,9 +57,7 @@ describe('Escalations API Integration Tests', () => {
   });
 
   afterEach(async () => {
-    // Clean up test data
-    await db('escalations').where({ id: testEscalationId }).del();
-    await db('patients').where({ id: testPatientId }).del();
+    await txContext.teardown();
   });
 
   describe('GET /api/escalations', () => {

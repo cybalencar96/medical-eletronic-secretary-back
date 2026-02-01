@@ -7,6 +7,7 @@ import { app } from '../../../src/app';
 import jwt from 'jsonwebtoken';
 import db from '../../../src/infrastructure/database/connection';
 import { AppointmentStatus } from '../../../src/modules/appointments/types/appointment.types';
+import { createTransactionContext, TransactionContext } from '../../utils/transaction-context';
 
 // Mock JWT secret
 jest.mock('../../../src/infrastructure/config/env', () => ({
@@ -21,6 +22,7 @@ describe('Appointments API Integration Tests', () => {
   let authToken: string;
   let testAppointmentId: string;
   let testPatientId: string;
+  let txContext: TransactionContext;
 
   beforeAll(() => {
     // Generate valid JWT token for tests
@@ -28,6 +30,9 @@ describe('Appointments API Integration Tests', () => {
   });
 
   beforeEach(async () => {
+    txContext = createTransactionContext();
+    await txContext.setup();
+
     // Create test patient
     const [patient] = await db('patients')
       .insert({
@@ -53,10 +58,7 @@ describe('Appointments API Integration Tests', () => {
   });
 
   afterEach(async () => {
-    // Clean up test data
-    await db('appointments').where({ id: testAppointmentId }).del();
-    await db('patients').where({ id: testPatientId }).del();
-    await db('audit_logs').where({ patient_id: testPatientId }).del();
+    await txContext.teardown();
   });
 
   describe('GET /api/appointments', () => {

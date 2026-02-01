@@ -1,78 +1,21 @@
-import { Client } from 'pg';
-import knex, { Knex } from 'knex';
-import knexConfig from '../../knexfile';
-
-/**
- * Check if Docker services (PostgreSQL) are available
- */
-async function areDockerServicesAvailable(): Promise<boolean> {
-  const client = new Client({
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '5432', 10),
-    database: 'postgres',
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'postgres',
-  });
-
-  try {
-    await client.connect();
-    await client.end();
-    return true;
-  } catch {
-    return false;
-  }
-}
+import db from '../../src/infrastructure/database/connection';
+import { createTransactionContext, TransactionContext } from '../utils/transaction-context';
 
 describe('Database Schema Integration Tests', () => {
-  let db: Knex;
-  let servicesAvailable: boolean;
-
-  beforeAll(async () => {
-    servicesAvailable = await areDockerServicesAvailable();
-
-    if (!servicesAvailable) {
-      console.warn('PostgreSQL is not available. Skipping integration tests.');
-      return;
-    }
-
-    // Use test database configuration
-    const testConfig = {
-      ...knexConfig.development,
-      connection: {
-        ...(knexConfig.development.connection as Knex.PgConnectionConfig),
-        database: 'medical_secretary_test',
-      },
-    };
-    db = knex(testConfig);
-
-    // Ensure clean state and run migrations
-    await db.migrate.rollback(undefined, true);
-    await db.migrate.latest();
-  });
-
-  afterAll(async () => {
-    if (servicesAvailable && db) {
-      await db.migrate.rollback(undefined, true);
-      await db.destroy();
-    }
-  });
+  let txContext: TransactionContext;
 
   beforeEach(async () => {
-    if (!servicesAvailable) return;
+    txContext = createTransactionContext();
+    await txContext.setup();
+  });
 
-    // Clean up test data before each test
-    await db('notifications_sent').del();
-    await db('escalations').del();
-    await db('audit_logs').del();
-    await db('appointments').del();
-    await db('patients').del();
+  afterEach(async () => {
+    await txContext.teardown();
   });
 
   describe('Patients Table Constraints', () => {
     it('should enforce unique constraint on phone number', async () => {
-      if (!servicesAvailable) return;
-
-      const patient = {
+        const patient = {
         phone: '+5511999999999',
         name: 'John Doe',
       };
@@ -84,9 +27,7 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should auto-generate UUID for patient ID', async () => {
-      if (!servicesAvailable) return;
-
-      const [patient] = await db('patients')
+        const [patient] = await db('patients')
         .insert({
           phone: '+5511999999999',
           name: 'John Doe',
@@ -100,9 +41,7 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should auto-populate created_at timestamp', async () => {
-      if (!servicesAvailable) return;
-
-      const [patient] = await db('patients')
+        const [patient] = await db('patients')
         .insert({
           phone: '+5511999999999',
           name: 'John Doe',
@@ -114,9 +53,7 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should allow nullable consent_given_at', async () => {
-      if (!servicesAvailable) return;
-
-      const [patient] = await db('patients')
+        const [patient] = await db('patients')
         .insert({
           phone: '+5511999999999',
           name: 'John Doe',
@@ -131,9 +68,7 @@ describe('Database Schema Integration Tests', () => {
     let patientId: string;
 
     beforeEach(async () => {
-      if (!servicesAvailable) return;
-
-      const [patient] = await db('patients')
+        const [patient] = await db('patients')
         .insert({
           phone: '+5511999999999',
           name: 'John Doe',
@@ -143,9 +78,7 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should enforce foreign key constraint on patient_id', async () => {
-      if (!servicesAvailable) return;
-
-      const appointment = {
+        const appointment = {
         patient_id: '00000000-0000-0000-0000-000000000000', // Non-existent patient
         scheduled_at: new Date(),
       };
@@ -154,9 +87,7 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should cascade delete appointments when patient is deleted', async () => {
-      if (!servicesAvailable) return;
-
-      const [appointment] = await db('appointments')
+        const [appointment] = await db('appointments')
         .insert({
           patient_id: patientId,
           scheduled_at: new Date(),
@@ -172,9 +103,7 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should default status to scheduled', async () => {
-      if (!servicesAvailable) return;
-
-      const [appointment] = await db('appointments')
+        const [appointment] = await db('appointments')
         .insert({
           patient_id: patientId,
           scheduled_at: new Date(),
@@ -185,9 +114,7 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should accept valid status enum values', async () => {
-      if (!servicesAvailable) return;
-
-      const validStatuses = ['scheduled', 'confirmed', 'cancelled', 'completed', 'no_show'];
+        const validStatuses = ['scheduled', 'confirmed', 'cancelled', 'completed', 'no_show'];
 
       for (const status of validStatuses) {
         const [appointment] = await db('appointments')
@@ -203,9 +130,7 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should auto-populate created_at and updated_at timestamps', async () => {
-      if (!servicesAvailable) return;
-
-      const [appointment] = await db('appointments')
+        const [appointment] = await db('appointments')
         .insert({
           patient_id: patientId,
           scheduled_at: new Date(),
@@ -222,9 +147,7 @@ describe('Database Schema Integration Tests', () => {
     let patientId: string;
 
     beforeEach(async () => {
-      if (!servicesAvailable) return;
-
-      const [patient] = await db('patients')
+        const [patient] = await db('patients')
         .insert({
           phone: '+5511999999999',
           name: 'John Doe',
@@ -234,9 +157,7 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should enforce foreign key constraint on patient_id', async () => {
-      if (!servicesAvailable) return;
-
-      const auditLog = {
+        const auditLog = {
         patient_id: '00000000-0000-0000-0000-000000000000',
         action: 'patient_created',
         payload: { test: 'data' },
@@ -246,9 +167,7 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should accept JSONB payload data', async () => {
-      if (!servicesAvailable) return;
-
-      const payload = {
+        const payload = {
         action: 'appointment_booked',
         timestamp: new Date().toISOString(),
         metadata: {
@@ -271,9 +190,7 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should cascade delete audit logs when patient is deleted', async () => {
-      if (!servicesAvailable) return;
-
-      await db('audit_logs').insert({
+        await db('audit_logs').insert({
         patient_id: patientId,
         action: 'patient_created',
       });
@@ -289,9 +206,7 @@ describe('Database Schema Integration Tests', () => {
     let patientId: string;
 
     beforeEach(async () => {
-      if (!servicesAvailable) return;
-
-      const [patient] = await db('patients')
+        const [patient] = await db('patients')
         .insert({
           phone: '+5511999999999',
           name: 'John Doe',
@@ -301,9 +216,7 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should enforce foreign key constraint on patient_id', async () => {
-      if (!servicesAvailable) return;
-
-      const escalation = {
+        const escalation = {
         patient_id: '00000000-0000-0000-0000-000000000000',
         message: 'Test escalation',
         reason: 'low_confidence',
@@ -313,9 +226,7 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should allow nullable resolved_at and resolved_by', async () => {
-      if (!servicesAvailable) return;
-
-      const [escalation] = await db('escalations')
+        const [escalation] = await db('escalations')
         .insert({
           patient_id: patientId,
           message: 'Test escalation',
@@ -328,9 +239,7 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should cascade delete escalations when patient is deleted', async () => {
-      if (!servicesAvailable) return;
-
-      await db('escalations').insert({
+        await db('escalations').insert({
         patient_id: patientId,
         message: 'Test escalation',
         reason: 'low_confidence',
@@ -348,9 +257,7 @@ describe('Database Schema Integration Tests', () => {
     let appointmentId: string;
 
     beforeEach(async () => {
-      if (!servicesAvailable) return;
-
-      const [patient] = await db('patients')
+        const [patient] = await db('patients')
         .insert({
           phone: '+5511999999999',
           name: 'John Doe',
@@ -368,9 +275,7 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should enforce foreign key constraint on appointment_id', async () => {
-      if (!servicesAvailable) return;
-
-      const notification = {
+        const notification = {
         appointment_id: '00000000-0000-0000-0000-000000000000',
         type: 'reminder_48h',
       };
@@ -379,9 +284,7 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should enforce unique constraint on appointment_id and type combination', async () => {
-      if (!servicesAvailable) return;
-
-      const notification = {
+        const notification = {
         appointment_id: appointmentId,
         type: 'reminder_48h',
       };
@@ -393,9 +296,7 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should allow multiple notifications of different types for same appointment', async () => {
-      if (!servicesAvailable) return;
-
-      await db('notifications_sent').insert({
+        await db('notifications_sent').insert({
         appointment_id: appointmentId,
         type: 'reminder_48h',
       });
@@ -412,9 +313,7 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should cascade delete notifications when appointment is deleted', async () => {
-      if (!servicesAvailable) return;
-
-      await db('notifications_sent').insert({
+        await db('notifications_sent').insert({
         appointment_id: appointmentId,
         type: 'reminder_48h',
       });
@@ -428,9 +327,7 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should auto-populate sent_at timestamp', async () => {
-      if (!servicesAvailable) return;
-
-      const [notification] = await db('notifications_sent')
+        const [notification] = await db('notifications_sent')
         .insert({
           appointment_id: appointmentId,
           type: 'reminder_48h',
@@ -444,9 +341,7 @@ describe('Database Schema Integration Tests', () => {
 
   describe('Edge Cases', () => {
     it('should handle large JSONB payloads in audit_logs', async () => {
-      if (!servicesAvailable) return;
-
-      const [patient] = await db('patients')
+        const [patient] = await db('patients')
         .insert({
           phone: '+5511999999999',
           name: 'John Doe',
@@ -477,9 +372,7 @@ describe('Database Schema Integration Tests', () => {
     });
 
     it('should prevent orphaned appointments when patient deletion fails', async () => {
-      if (!servicesAvailable) return;
-
-      const [patient] = await db('patients')
+        const [patient] = await db('patients')
         .insert({
           phone: '+5511999999999',
           name: 'John Doe',
