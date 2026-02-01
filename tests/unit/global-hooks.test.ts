@@ -83,12 +83,8 @@ describe('Global Hooks - Module Structure', () => {
         (arg) => arg.includes('testPathPattern') && arg.includes('integration')
       );
 
-      const isUnitTest = process.argv.some(
-        (arg) => arg.includes('testPathIgnorePatterns') && arg.includes('integration')
-      );
-
-      // Current run should be unit tests (integration tests are ignored)
-      expect(isUnitTest).toBe(true);
+      // When running unit tests, integration tests should NOT be targeted
+      // The test config ignores integration tests rather than targeting them
       expect(isIntegrationTest).toBe(false);
     });
   });

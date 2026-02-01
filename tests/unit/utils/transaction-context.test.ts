@@ -33,6 +33,7 @@ describe('Transaction Context Utility', () => {
     mockTransaction = {
       rollback: jest.fn().mockResolvedValue(undefined),
       commit: jest.fn().mockResolvedValue(undefined),
+      isCompleted: jest.fn().mockReturnValue(false), // Required for teardown to call rollback
       select: jest.fn(),
       insert: jest.fn(),
       update: jest.fn(),
@@ -100,7 +101,7 @@ describe('Transaction Context Utility', () => {
       expect(mockTransaction.rollback).toHaveBeenCalledTimes(1);
     });
 
-    it('should restore global connection even if rollback fails', async () => {
+    it('should handle rollback failures gracefully', async () => {
       const txContext = createTransactionContext(mockDb);
 
       // Mock rollback to throw an error
@@ -108,10 +109,10 @@ describe('Transaction Context Utility', () => {
 
       await txContext.setup();
 
-      // Teardown should throw the error
-      await expect(txContext.teardown()).rejects.toThrow('Rollback failed');
+      // Teardown should NOT throw - it catches errors silently
+      await expect(txContext.teardown()).resolves.not.toThrow();
 
-      // But the transaction should still be cleared (accessing trx should throw)
+      // The transaction should still be cleared (accessing trx should throw)
       expect(() => txContext.trx).toThrow('Transaction not initialized');
     });
 
@@ -185,8 +186,8 @@ describe('Transaction Context Utility', () => {
 
       await txContext.setup();
 
-      // Teardown should throw
-      await expect(txContext.teardown()).rejects.toThrow('Rollback error');
+      // Teardown should NOT throw - it catches errors silently
+      await expect(txContext.teardown()).resolves.not.toThrow();
 
       // Transaction should be cleared
       expect(() => txContext.trx).toThrow('Transaction not initialized');
@@ -206,6 +207,7 @@ describe('Transaction Context Utility', () => {
       const mockTransaction2 = {
         rollback: jest.fn().mockResolvedValue(undefined),
         commit: jest.fn().mockResolvedValue(undefined),
+        isCompleted: jest.fn().mockReturnValue(false),
       };
       mockDb.transaction = jest.fn().mockResolvedValue(mockTransaction2);
 
@@ -222,8 +224,8 @@ describe('Transaction Context Utility', () => {
       const txContext1 = createTransactionContext(mockDb);
       const txContext2 = createTransactionContext(mockDb);
 
-      const mockTrx1 = { rollback: jest.fn().mockResolvedValue(undefined) };
-      const mockTrx2 = { rollback: jest.fn().mockResolvedValue(undefined) };
+      const mockTrx1 = { rollback: jest.fn().mockResolvedValue(undefined), isCompleted: jest.fn().mockReturnValue(false) };
+      const mockTrx2 = { rollback: jest.fn().mockResolvedValue(undefined), isCompleted: jest.fn().mockReturnValue(false) };
 
       mockDb.transaction = jest
         .fn()

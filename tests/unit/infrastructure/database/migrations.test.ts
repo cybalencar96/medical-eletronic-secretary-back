@@ -207,7 +207,8 @@ describe('Database Migrations', () => {
       if (!servicesAvailable) return;
 
       const columns = await db('appointments').columnInfo();
-      expect(columns.status.type).toBe('character varying');
+      // Knex enum() creates a text column with a check constraint in PostgreSQL
+      expect(columns.status.type).toBe('text');
       expect(columns.status.defaultValue).toContain('scheduled');
     });
 

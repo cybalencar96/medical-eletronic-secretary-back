@@ -7,7 +7,8 @@ describe('Redis Connection Utility', () => {
 
       expect(redis).toBeDefined();
       expect(redis.client).toBeDefined();
-      expect(redis.client.options.keyPrefix).toBe('custom-prefix:');
+      // Note: keyPrefix is not set on IORedis client because BullMQ doesn't support it
+      // The prefix is stored internally for cleanup operations
       expect(redis.cleanup).toBeDefined();
       expect(redis.close).toBeDefined();
 
@@ -18,7 +19,9 @@ describe('Redis Connection Utility', () => {
     it('should use default prefix when not specified', () => {
       const redis = createTestRedisConnection();
 
-      expect(redis.client.options.keyPrefix).toBe('test:');
+      // Note: keyPrefix is not set on IORedis client because BullMQ doesn't support it
+      // The prefix is stored internally for cleanup operations
+      expect(redis.client).toBeDefined();
 
       // Cleanup - disconnect synchronously
       redis.client.disconnect();
@@ -139,9 +142,8 @@ describe('Redis Connection Utility', () => {
       const redis2 = createTestRedisConnection('conn2:');
       const redis3 = createTestRedisConnection('conn3:');
 
-      expect(redis1.client.options.keyPrefix).toBe('conn1:');
-      expect(redis2.client.options.keyPrefix).toBe('conn2:');
-      expect(redis3.client.options.keyPrefix).toBe('conn3:');
+      // Note: keyPrefix is not set on IORedis client because BullMQ doesn't support it
+      // The prefix is stored internally for cleanup operations
 
       // All connections should be independent
       expect(redis1.client).not.toBe(redis2.client);

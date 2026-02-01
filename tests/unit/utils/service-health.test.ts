@@ -108,12 +108,13 @@ describe('service-health', () => {
       await checkPostgres();
 
       // Verify Client was instantiated with correct config
+      // Note: database is always 'postgres' for health checks (not DB_NAME)
       expect(Client).toHaveBeenCalledWith({
         host: 'test-host',
         port: 5433,
         user: 'test-user',
         password: 'test-pass',
-        database: 'test-db',
+        database: 'postgres',
       });
 
       process.env = originalEnv;
@@ -193,6 +194,7 @@ describe('service-health', () => {
       expect(Redis).toHaveBeenCalledWith({
         host: 'test-redis-host',
         port: 6380,
+        password: process.env.REDIS_PASSWORD || 'redis',
         maxRetriesPerRequest: 1,
         retryStrategy: expect.any(Function),
         lazyConnect: true,
